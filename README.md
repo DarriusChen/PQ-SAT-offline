@@ -31,7 +31,9 @@ The generated reports provide detailed insights with the following structure:
 ## Usage Instructions
 ### OpenSearch Application (crypto_inventory_online)
 
-1. **Configuration**:
+1. **Mount to the Correct Directory**: Ensure that you are in the `crypto_inventory_online` directory.
+
+2. **Configuration**:
    - Modify the environment variables in the `.env` file according to your setup:
      ```
      OPS_HOST=opensearch_host
@@ -42,13 +44,13 @@ The generated reports provide detailed insights with the following structure:
      ```
    - Ensure to change `OPS_HOST` and `OPS_AUTH` before running the script to avoid errors.
 
-2. **Execution**:
+3. **Execution**:
    - Run the script using the following command:
      ```bash
      bash crypto_inventory_online.sh
      ```
 
-3. **Setting the Host IP**:
+4. **Setting the Host IP**:
    - You can set the host IP in two ways:
      - **Option 1**: Modify the parameter in the `.env` file:
        ```
@@ -63,7 +65,9 @@ The generated reports provide detailed insights with the following structure:
 
 ### PCAP Application (crypto_inventory_offline)
 
-1. **Configuration**:
+1. **Mount to the Correct Directory**: Ensure that you are in the `crypto_inventory_offline` directory.
+
+2. **Configuration**:
    - Set the necessary parameters for the PCAP application in the `.env` file:
      ```
      PCAP_FILE=your_pcap_file.pcap
@@ -71,7 +75,30 @@ The generated reports provide detailed insights with the following structure:
      ```
    - Ensure that the `PCAP_FILE` points to the correct local PCAP file you wish to analyze.
 
-2. **Execution**:
+3. **Execution**:
    - Run the PCAP analysis script using the following command:
      ```bash
      bash crypto_inventory_pcap.sh
+## File Structure
+
+The project is organized as follows:
+```plaintext
+crypto_inventory_offline/
+├── pcap_files/
+├── .env
+├── Dockerfile
+├── README.md
+├── cipher_suites.json
+├── crypto_inventory_local.py
+├── crypto_inventory_local.sh
+├── docker-compose.yaml
+├── requirements.txt
+└── zeek_analysis.sh
+crypto_inventory_online/
+├── .env
+├── Dockerfile
+├── README.md
+├── cipher_suites.json
+├── crypto_inventory_online.py
+├── crypto_inventory_online.sh
+└── requirements.txt
