@@ -36,3 +36,11 @@ docker run --rm --name crypto-system-inventory-container \
     -v "$(pwd)/crypto_inventory_report:/app/crypto_inventory_report" \
     -e OPS_HOST="$HOST" \
     crypto-system-inventory-app 
+
+# Create or update crontab log
+if [ -e "./cron_log.log" ]; then
+    echo "Cron job executed at: $(date)" | sudo tee -a ./cron_test.log
+else
+    touch ./cron_log.log
+fi
+
