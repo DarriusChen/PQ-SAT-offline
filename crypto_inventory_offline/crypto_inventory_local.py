@@ -51,14 +51,14 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
     # ssl_unique = list(unique_data.values())
     unique_data = {}
 
-    for item in tqdm(ssl_data, file=sys.stdout, desc="Removing duplicates..."):
+    for item in tqdm(ssl_data, file=sys.stdout, desc="Removing duplicates...", ncols=100):
         key = frozenset((item['id.orig_h'], item['id.resp_h'], item['id.orig_p'], item['id.resp_p']))
         
         # Try to get the current value in the dictionary; if it doesn't exist, it will be None
         existing_item = unique_data.get(key)
         
         # Update the dictionary if no item exists or if the new item has a non-null ciphersuite_name
-        if existing_item is None or (item['ciphersuite_name'] is not None and existing_item['ciphersuite_name'] is None):
+        if existing_item is None or (item['cipher'] is not None and existing_item['cipher'] is None):
             unique_data[key] = item
     ssl_unique = list(unique_data.values())
 
@@ -75,7 +75,7 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
     # ]
 
     formatted_ssl = []
-    for data in tqdm(ssl_unique, file=sys.stdout, desc="Enhanacing ISP information..."):
+    for data in tqdm(ssl_unique, file=sys.stdout, desc="Merging ssl logs and adding ISP information...", ncols=100):
         isp_cache = add_isp_1(data.get('id.resp_p'))
         formatted_ssl.append({
             "origin_ip": data.get('id.orig_h'),
@@ -89,7 +89,7 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
         })
 
     # Mapping
-    for item in formatted_ssl:
+    for item in tqdm(formatted_ssl, file=sys.stdout, desc="Mapping with ciphersuite data...", ncols=100):
         item['ciphersuite'] = formatted_cs.get(item['cipher_suite'], "null")
         item.pop('cipher_suite', None)
 
@@ -130,7 +130,7 @@ def add_isp_1(ip):
             'country': whois_info.get('asn_country_code')
         }
     except Exception as e:
-        print(f"Error looking up IP {ip}: {e}")
+        # print(f"Error looking up IP {ip}: {e}")
         ip_cache[ip] = {'isp': "null", 'country': "null"}
     return ip_cache
 
@@ -176,7 +176,7 @@ def process_ssl_log_mapping(log_file, ciphersuite_file):
                                       ssl_data=data)
 
     # 增加 ISP 資訊
-    zeek_ssl_cipher = add_isp(zeek_ssl_cipher)
+    # zeek_ssl_cipher = add_isp(zeek_ssl_cipher)
 
     # 將結果轉換為 DataFrame，並取代空值
     df = pd.json_normalize(zeek_ssl_cipher)  # 將所有dictionary層級的值扁平化
