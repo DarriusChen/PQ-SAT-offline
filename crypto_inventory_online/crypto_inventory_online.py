@@ -127,6 +127,19 @@ def add_isp(data):
         c['country'] = ip_cache[ip]['country']
     return data
 
+# Add ISP info (single)
+def add_isp_1(ip):
+    ip_cache = {}
+    try:
+        whois_info = IPWhois(ip).lookup_rdap()
+        ip_cache[ip] = {
+            'isp': whois_info.get('network', {}).get('name'),
+            'country': whois_info.get('asn_country_code')
+        }
+    except Exception as e:
+        # print(f"Error looking up IP {ip}: {e}")
+        ip_cache[ip] = {'isp': "null", 'country': "null"}
+    return ip_cache
 
 # ------------------------------------------------------------------ #
 
@@ -158,12 +171,12 @@ def main():
         )
 
     query = {'query': {'match_all': {}}}
-    response = get_data_from_opensearch(index_name=idx_pattern, query=query)
-    if response is None:
+    response_hits = get_data_from_opensearch(index_name=idx_pattern, query=query)
+    if response_hits is None:
         raise RuntimeError("Error getting data from OpenSearch")
 
     zeek_ssl_cipher = map_ciphersuite(ciphersuite_file=cipher_file,
-                                      response=response)
+                                      hits=response_hits)
     zeek_ssl_cipher = add_isp(zeek_ssl_cipher)
 
     # Export to excel
