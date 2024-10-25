@@ -31,10 +31,12 @@ def get_data_from_opensearch(index_name, query):
             ssl_show_warn=False  # Add this line to suppress warnings
         )
         # Know how many indices that match the pattern
-        response_count = client.count(index=index_name, body=query)
+        # response_count = client.count(index=index_name, body=query)
+        batch_size = 1000
         response = client.search(index=index_name,
                                  body=query,
-                                 size=response_count['count'],
+                                 scroll="20m",
+                                 size=batch_size,
                                  _source=[
                                      'id.orig_h', 'id.orig_p', 'id.resp_h',
                                      'id.resp_p', 'version', 'cipher'
