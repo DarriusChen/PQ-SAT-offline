@@ -33,15 +33,32 @@ def get_data_from_opensearch(index_name, query):
         # Know how many indices that match the pattern
         # response_count = client.count(index=index_name, body=query)
         batch_size = 1000
+        scroll_time = "20m"
+        print("Collecting data from opensearch...")
         response = client.search(index=index_name,
                                  body=query,
-                                 scroll="20m",
+                                 scroll=scroll_time,
                                  size=batch_size,
                                  _source=[
                                      'id.orig_h', 'id.orig_p', 'id.resp_h',
                                      'id.resp_p', 'version', 'cipher'
                                  ])
-        return response
+        
+        # Collect results from the initial search
+        scroll_id = response['_scroll_id']
+        all_hits = response['hits']['hits']
+        
+        # Scroll through the data
+        while True:
+            response = client.scroll(scroll_id=scroll_id, scroll=scroll_time)
+            hits = response['hits']['hits']
+            if not hits:
+                break  # Stop if no more data is returned
+            all_hits.extend(hits)
+            scroll_id = response['_scroll_id']  # Update scroll ID for the next scroll call
+        
+        return all_hits
+
     except Exception as e:
         print(f"Error connecting to OpenSearch: {e}")
         return None
@@ -53,7 +70,7 @@ def get_data_from_opensearch(index_name, query):
 
 
 # Read ciphersuite data from cipher_suites.json
-def map_ciphersuite(ciphersuite_file, response):
+def map_ciphersuite(ciphersuite_file, hits):
     with open(ciphersuite_file, 'r') as file:
         ciphersuite_data = json.load(file)
 
@@ -67,7 +84,7 @@ def map_ciphersuite(ciphersuite_file, response):
         "response_port": hit['_source'].get('id.resp_p'),
         "tls_version": hit['_source'].get('version', "null"),
         "cipher_suite": hit['_source'].get('cipher', "null")
-    } for hit in response['hits']['hits']]
+    } for hit in hits]
 
     # Prevent duplicate origin_ip and response_ip, and port
     unique_data = {
