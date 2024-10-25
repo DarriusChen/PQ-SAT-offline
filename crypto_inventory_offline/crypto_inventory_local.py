@@ -3,7 +3,7 @@ import pandas as pd
 from ipwhois import IPWhois
 import os
 from dotenv import load_dotenv
-from datetime import datetime,timezone,timedelta
+from datetime import datetime, timezone, timedelta
 from tqdm import tqdm
 import sys
 
@@ -12,18 +12,27 @@ load_dotenv()
 
 # ------------------------------------------------------------------ #
 
+
 # 讀取 ssl.log 文件並轉換成 JSON 物件列表
 def get_data_from_ssl_log(log_file):
     data = []
     with open(log_file, 'r') as f:
-        data = [json.loads(line) for line in f] # 每一行是一個 JSON 物件
-        fields_to_extract = ['id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p', 'version', 'cipher']
-        filtered_data = [{field: item.get(field, "null") for field in fields_to_extract} for item in data]
+        data = [json.loads(line) for line in f]  # 每一行是一個 JSON 物件
+        fields_to_extract = [
+            'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p', 'version',
+            'cipher'
+        ]
+        filtered_data = [{
+            field: item.get(field, "null")
+            for field in fields_to_extract
+        } for item in data]
     return filtered_data
+
 
 # ------------------------------------------------------------------ #
 
 # Map ciphersuites with ssl log
+
 
 # Read ciphersuite data from cipher_suites.json
 def map_ciphersuite(ciphersuite_file, ssl_data):
@@ -33,22 +42,51 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
     # Process ciphersuite data and map it
     formatted_cs = {cipher['name']: cipher for cipher in ciphersuite_data}
 
-        # Prevent duplicate origin_ip and response_ip
-    unique_data = {frozenset((item['id.orig_h'], item['id.resp_h'], item['id.orig_p'], item['id.resp_p'])): item for item in ssl_data}
+    # Prevent duplicate origin_ip and response_ip and port
+    # unique_data = {
+    #     frozenset((item['id.orig_h'], item['id.resp_h'], item['id.orig_p'], item['id.resp_p'])):
+    #     item
+    #     for item in ssl_data
+    # }
+    # ssl_unique = list(unique_data.values())
+    unique_data = {}
+
+    for item in tqdm(ssl_data, file=sys.stdout, desc="Removing duplicates..."):
+        key = frozenset((item['id.orig_h'], item['id.resp_h'], item['id.orig_p'], item['id.resp_p']))
+        
+        # Try to get the current value in the dictionary; if it doesn't exist, it will be None
+        existing_item = unique_data.get(key)
+        
+        # Update the dictionary if no item exists or if the new item has a non-null ciphersuite_name
+        if existing_item is None or (item['ciphersuite_name'] is not None and existing_item['ciphersuite_name'] is None):
+            unique_data[key] = item
     ssl_unique = list(unique_data.values())
-    
-    formatted_ssl = [
-        {
+
+    # formatted_ssl = [
+    #     {
+    #         "origin_ip": data.get('id.orig_h'),
+    #         "origin_port": data.get('id.orig_p'),
+    #         "response_ip": data.get('id.resp_h'),
+    #         "response_port": data.get('id.resp_p'),
+    #         "tls_version": data.get('version', "null"),
+    #         "cipher_suite": data.get('cipher', "null"),
+    #     }
+    #     for data in tqdm(ssl_unique)
+    # ]
+
+    formatted_ssl = []
+    for data in tqdm(ssl_unique, file=sys.stdout, desc="Enhanacing ISP information..."):
+        isp_cache = add_isp_1(data.get('id.resp_p'))
+        formatted_ssl.append({
             "origin_ip": data.get('id.orig_h'),
             "origin_port": data.get('id.orig_p'),
             "response_ip": data.get('id.resp_h'),
             "response_port": data.get('id.resp_p'),
             "tls_version": data.get('version', "null"),
-            "cipher_suite": data.get('cipher', "null")
-        } 
-        for data in ssl_unique
-    ]
-
+            "cipher_suite": data.get('cipher', "null"),
+            "isp": isp_cache.get('isp'),
+            "country": isp_cache.get('country')
+        })
 
     # Mapping
     for item in formatted_ssl:
@@ -57,13 +95,14 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
 
     return formatted_ssl
 
+
 # ------------------------------------------------------------------ #
 
-# Add ISP information
 
+# Add ISP information (all)
 def add_isp(data):
     ip_cache = {}
-    for c in data:
+    for c in tqdm(data, file=sys.stdout, desc="Enhanacing ISP information..."):
         ip = c['response_ip']
         if ip not in ip_cache:
             try:
@@ -80,6 +119,22 @@ def add_isp(data):
         c['country'] = ip_cache[ip]['country']
     return data
 
+
+# Add ISP info (single)
+def add_isp_1(ip):
+    ip_cache = {}
+    try:
+        whois_info = IPWhois(ip).lookup_rdap()
+        ip_cache[ip] = {
+            'isp': whois_info.get('network', {}).get('name'),
+            'country': whois_info.get('asn_country_code')
+        }
+    except Exception as e:
+        print(f"Error looking up IP {ip}: {e}")
+        ip_cache[ip] = {'isp': "null", 'country': "null"}
+    return ip_cache
+
+
 # ------------------------------------------------------------------ #
 # 遍歷資料夾，使用 os.scandir() 查找 ssl.log 文件
 def find_ssl_logs(base_dir):
@@ -89,7 +144,9 @@ def find_ssl_logs(base_dir):
         elif entry.is_file() and entry.name == 'ssl.log':
             yield entry.path  # 找到 ssl.log 文件，並返回其路徑
 
+
 # ------------------------------------------------------------------ #
+
 
 # Function to replace empty lists and dictionaries with 'null'
 def replace_empty(val):
@@ -101,7 +158,9 @@ def replace_empty(val):
         return "null"
     return val  # Return the original value if it's not empty
 
+
 # ------------------------------------------------------------------ #
+
 
 # 處理單個 ssl.log 文件
 def process_ssl_log_mapping(log_file, ciphersuite_file):
@@ -113,13 +172,14 @@ def process_ssl_log_mapping(log_file, ciphersuite_file):
         return None, None
 
     # map ssl log with ciphersuite data
-    zeek_ssl_cipher = map_ciphersuite(ciphersuite_file=ciphersuite_file, ssl_data=data)
+    zeek_ssl_cipher = map_ciphersuite(ciphersuite_file=ciphersuite_file,
+                                      ssl_data=data)
 
     # 增加 ISP 資訊
     zeek_ssl_cipher = add_isp(zeek_ssl_cipher)
 
     # 將結果轉換為 DataFrame，並取代空值
-    df = pd.json_normalize(zeek_ssl_cipher) # 將所有dictionary層級的值扁平化
+    df = pd.json_normalize(zeek_ssl_cipher)  # 將所有dictionary層級的值扁平化
     df.fillna(value="null", inplace=True)
     df.columns = [col.replace('.', '_') for col in df.columns]
     df = df.map(replace_empty)
@@ -128,7 +188,9 @@ def process_ssl_log_mapping(log_file, ciphersuite_file):
     # 返回處理好的 DataFrame 和 log_file 名稱
     return df, os.path.basename(os.path.dirname(log_file))
 
+
 # ------------------------------------------------------------------ #
+
 
 # Main function
 def main():
@@ -143,16 +205,23 @@ def main():
         return  # 如果沒有找到 ssl.log 文件，直接退出
 
     if not all([log_dir, cipher_file]):
-        raise ValueError("Missing required environment variables. Please check your .env file.")
+        raise ValueError(
+            "Missing required environment variables. Please check your .env file."
+        )
 
     # 建立 ExcelWriter 來將結果寫入同一個 Excel 文件中
     dt1 = datetime.now().replace(tzinfo=timezone.utc)
-    dt2 = dt1.astimezone(timezone(timedelta(hours=8))) # 轉換時區 -> 東八區
+    dt2 = dt1.astimezone(timezone(timedelta(hours=8)))  # 轉換時區 -> 東八區
     now = dt2.strftime("%Y_%m_%d_%H_%M_%S")
-    output_file ="./crypto_inventory_report/inventory_report_" + now + '.xlsx'
+    output_file = "./crypto_inventory_report/inventory_report_" + now + '.xlsx'
     with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
         # # 遍歷所有 ssl.log 文件
-        for log_file in tqdm(ssl_logs, file=sys.stdout, desc="Processing SSL logs", unit="file", total=len(ssl_logs), ncols=100):
+        for log_file in tqdm(ssl_logs,
+                             file=sys.stdout,
+                             desc="Processing SSL logs",
+                             unit="file",
+                             total=len(ssl_logs),
+                             ncols=100):
             try:
                 df, sheet_name = process_ssl_log_mapping(log_file, cipher_file)
                 if df is not None:
