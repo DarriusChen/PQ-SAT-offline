@@ -19,8 +19,8 @@ def get_data_from_ssl_log(log_file):
     with open(log_file, 'r') as f:
         data = [json.loads(line) for line in f]  # 每一行是一個 JSON 物件
         fields_to_extract = [
-            'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p', 'version',
-            'cipher'
+            'ts', 'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p',
+            'version', 'cipher'
         ]
         filtered_data = [{
             field: item.get(field, "null")
@@ -51,14 +51,19 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
     # ssl_unique = list(unique_data.values())
     unique_data = {}
 
-    for item in tqdm(ssl_data, file=sys.stdout, desc="Removing duplicates...", ncols=100):
-        key = frozenset((item['id.orig_h'], item['id.resp_h'], item['id.orig_p'], item['id.resp_p']))
-        
+    for item in tqdm(ssl_data,
+                     file=sys.stdout,
+                     desc="Removing duplicates...",
+                     ncols=100):
+        key = frozenset((item['id.orig_h'], item['id.resp_h'],
+                         item['id.orig_p'], item['id.resp_p']))
+
         # Try to get the current value in the dictionary; if it doesn't exist, it will be None
         existing_item = unique_data.get(key)
-        
+
         # Update the dictionary if no item exists or if the new item has a non-null ciphersuite_name
-        if existing_item is None or (item['cipher'] is not None and existing_item['cipher'] is None):
+        if existing_item is None or (item['cipher'] is not None
+                                     and existing_item['cipher'] is None):
             unique_data[key] = item
     ssl_unique = list(unique_data.values())
 
@@ -75,9 +80,13 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
     # ]
 
     formatted_ssl = []
-    for data in tqdm(ssl_unique, file=sys.stdout, desc="Merging ssl logs and adding ISP information...", ncols=100):
+    for data in tqdm(ssl_unique,
+                     file=sys.stdout,
+                     desc="Merging ssl logs and adding ISP information...",
+                     ncols=100):
         isp_cache = add_isp_1(data.get('id.resp_p'))
         formatted_ssl.append({
+            "time": datetime.fromtimestamp(data.get('ts')).strftime("%Y/%m/%d-%H:%M:%S"),
             "origin_ip": data.get('id.orig_h'),
             "origin_port": data.get('id.orig_p'),
             "response_ip": data.get('id.resp_h'),
@@ -89,7 +98,10 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
         })
 
     # Mapping
-    for item in tqdm(formatted_ssl, file=sys.stdout, desc="Mapping with ciphersuite data...", ncols=100):
+    for item in tqdm(formatted_ssl,
+                     file=sys.stdout,
+                     desc="Mapping with ciphersuite data...",
+                     ncols=100):
         item['ciphersuite'] = formatted_cs.get(item['cipher_suite'], "null")
         item.pop('cipher_suite', None)
 
@@ -170,6 +182,7 @@ def process_ssl_log_mapping(log_file, ciphersuite_file):
     if not data:
         print(f"Error reading data from {log_file}")
         return None, None
+    print(f"\nProcessing file: {log_file}")
 
     # map ssl log with ciphersuite data
     zeek_ssl_cipher = map_ciphersuite(ciphersuite_file=ciphersuite_file,
@@ -209,30 +222,38 @@ def main():
             "Missing required environment variables. Please check your .env file."
         )
 
+    # 初始化一個空的 DataFrame，用於增量合併
+    combined_df = pd.DataFrame()
+
+    # 遍歷所有 ssl.log 文件，並進行增量合併
+    for log_file in tqdm(ssl_logs,
+                         file=sys.stdout,
+                         desc="Processing SSL logs",
+                         unit="file",
+                         total=len(ssl_logs),
+                         ncols=100):
+        try:
+            df, _ = process_ssl_log_mapping(log_file, cipher_file)
+            if df is not None:
+                # 逐步合併
+                combined_df = pd.concat([combined_df, df], ignore_index=True)
+            else:
+                raise ValueError(f"No data returned for {log_file}.")
+        except Exception as e:
+            print(f"Error processing {log_file}: {e}")
+
     # 建立 ExcelWriter 來將結果寫入同一個 Excel 文件中
     dt1 = datetime.now().replace(tzinfo=timezone.utc)
     dt2 = dt1.astimezone(timezone(timedelta(hours=8)))  # 轉換時區 -> 東八區
     now = dt2.strftime("%Y_%m_%d_%H_%M_%S")
     output_file = "./crypto_inventory_report/inventory_report_" + now + '.xlsx'
+    # 將合併的 DataFrame 寫入單一的 Excel 表格
     with pd.ExcelWriter(output_file, engine='xlsxwriter') as writer:
-        # # 遍歷所有 ssl.log 文件
-        for log_file in tqdm(ssl_logs,
-                             file=sys.stdout,
-                             desc="Processing SSL logs",
-                             unit="file",
-                             total=len(ssl_logs),
-                             ncols=100):
-            try:
-                df, sheet_name = process_ssl_log_mapping(log_file, cipher_file)
-                if df is not None:
-                    df.to_excel(writer, sheet_name=sheet_name, index=False)
-                    tqdm.write(f"Processing file: {log_file}")
-                else:
-                    raise ValueError(f"No data returned for {log_file}.")
-            except Exception as e:
-                print(f"Error processing {log_file}: {e}")
+        combined_df.to_excel(writer, sheet_name="All_merged_data", index=False)
 
-    print(f"Data has been processed and saved to {output_file}")
+    print(
+        f"All SSL logs have been successfully combined and saved to {output_file}"
+    )
 
 
 # ------------------------------------------------------------------ #
