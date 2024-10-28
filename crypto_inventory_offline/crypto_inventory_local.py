@@ -84,7 +84,7 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
                      file=sys.stdout,
                      desc="Merging ssl logs and adding ISP information...",
                      ncols=100):
-        isp_cache = add_isp_1(data.get('id.resp_p'))
+        isp_cache = add_isp_1(data['id.resp_h'])
         formatted_ssl.append({
             "time": datetime.fromtimestamp(data.get('ts')).strftime("%Y/%m/%d-%H:%M:%S"),
             "origin_ip": data.get('id.orig_h'),
@@ -137,13 +137,13 @@ def add_isp_1(ip):
     ip_cache = {}
     try:
         whois_info = IPWhois(ip).lookup_rdap()
-        ip_cache[ip] = {
+        ip_cache = {
             'isp': whois_info.get('network', {}).get('name'),
             'country': whois_info.get('asn_country_code')
         }
     except Exception as e:
         # print(f"Error looking up IP {ip}: {e}")
-        ip_cache[ip] = {'isp': "null", 'country': "null"}
+        ip_cache = {'isp': "null", 'country': "null"}
     return ip_cache
 
 
