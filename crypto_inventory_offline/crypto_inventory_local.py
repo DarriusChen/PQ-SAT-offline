@@ -80,11 +80,15 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
     # ]
 
     formatted_ssl = []
+    isp_cache = {}
     for data in tqdm(ssl_unique,
                      file=sys.stdout,
                      desc="Merging ssl logs and adding ISP information...",
                      ncols=100):
-        isp_cache = add_isp_1(data['id.resp_h'])
+        response_ip = data['id.resp_h']
+        if response_ip not in isp_cache:
+            isp_cache[response_ip] = add_isp_1(response_ip)
+        isp_info = isp_cache[response_ip]
         formatted_ssl.append({
             "time": datetime.fromtimestamp(data.get('ts')).strftime("%Y/%m/%d-%H:%M:%S"),
             "origin_ip": data.get('id.orig_h'),
@@ -93,8 +97,8 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
             "response_port": data.get('id.resp_p'),
             "tls_version": data.get('version', "null"),
             "cipher_suite": data.get('cipher', "null"),
-            "isp": isp_cache.get('isp'),
-            "country": isp_cache.get('country')
+            "isp": isp_info.get('isp'),
+            "country": isp_info.get('country')
         })
 
     # Mapping
