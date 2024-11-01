@@ -11,6 +11,9 @@ else
   exit 1
 fi
 
+# Export HOST to make it accessible to Docker Compose
+# export HOST
+
 # Check if the env variable is correctly modified from the default value
 if [[ -z "$OPS_HOST" || "$HOST" == opensearch_host ]]; then
   echo "Error: OPS_HOST has not been changed from the default value: $OPS_HOST. It should be modified."
@@ -23,7 +26,7 @@ fi
 # Build and run Docker container, and remove after finishing the task (--rm)
 echo "OPS_AUTH is valid: $OPS_AUTH"
 # Check if docker image exists
-IMAGE_NAME="crypto-system-inventory-app"
+IMAGE_NAME="cipher-mapper-online"
 if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
   echo "Docker image '$IMAGE_NAME' already exists. Skipping build."
 else
@@ -31,15 +34,27 @@ else
   docker build -t "$IMAGE_NAME" . 
 fi
 
+read -p "Enter start time (YYYY-MM-DD_HH:MM:SS): " start_time
+read -p "Enter end time (YYYY-MM-DD_HH:MM:SS): " end_time
+
+# # Export variables for Docker Compose
+# export START_TIME="$start_time"
+# export END_TIME="$end_time"
+
+
 echo "Running Docker container with OPS_HOST=$HOST...."
-docker run --rm --name crypto-system-inventory-container \
-    -v "$(pwd)/crypto_inventory_report:/app/crypto_inventory_report" \
-    -e OPS_HOST="$HOST" \
-    crypto-system-inventory-app 
+docker run -it --rm --name pq-sat\
+  -v "$(pwd)/crypto_inventory_report:/app/crypto_inventory_report" \
+  -e OPS_HOST="$HOST" \
+  -e START_TIME="$start_time" \
+  -e END_TIME="$end_time" \
+  cipher-mapper-online
+# docker-compose up
 
 # Create or update crontab log
 if [ -e "./cron_log.log" ]; then
-    echo "Cron job executed at: $(date)" | sudo tee -a ./cron_test.log
+    # echo "Cron job executed at: $(date)" | sudo tee -a ./cron_test.log
+    echo "Cron job executed at: $(date)" | tee -a ./cron_test.log
 else
     touch ./cron_log.log
 fi
