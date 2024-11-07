@@ -62,8 +62,8 @@ def map_ciphersuite(ciphersuite_file, ssl_data):
         existing_item = unique_data.get(key)
 
         # Update the dictionary if no item exists or if the new item has a non-null ciphersuite_name
-        if existing_item is None or (item['cipher'] is not None
-                                     and existing_item['cipher'] is None):
+        if existing_item is None or (item['cipher'] != "null"
+                                     and existing_item['cipher'] == "null"):
             unique_data[key] = item
     ssl_unique = list(unique_data.values())
 
@@ -241,6 +241,7 @@ def main():
             if df is not None:
                 # 逐步合併
                 combined_df = pd.concat([combined_df, df], ignore_index=True)
+                tqdm.write(f"Processing file: {log_file}")
             else:
                 raise ValueError(f"No data returned for {log_file}.")
         except Exception as e:
