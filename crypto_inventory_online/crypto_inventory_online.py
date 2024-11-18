@@ -9,6 +9,12 @@ from tqdm import tqdm
 import sys
 from functools import lru_cache
 import time
+import logging
+
+# ------------------------------------------------------------------ #
+logging.basicConfig(filename='./execution.log', format='%(filename)s: %(message)s',
+                    datefmt="%Y-%m-%d %H:%M:%S",
+                    level=logging.DEBUG)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -192,6 +198,8 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
     unique_data = []
     after_key = None
 
+    batch_count = 0
+
     while True:
         if after_key:
             query["aggs"]["unique_combinations"]["composite"]["after"] = after_key
@@ -230,6 +238,10 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
             after_key = response["aggregations"]["unique_combinations"]["after_key"]
         else:
             break
+
+        batch_count += 1
+        
+        logging.info(f"batch No.{batch_count} is executed.")
 
     return unique_data
 
@@ -301,6 +313,7 @@ def main():
         # write into excel
         all_df.to_excel(writer, sheet_name="Inventory Report", index=False)
 
+    logging.info(f"Total data processed: {len(unique_data)}")
     print(f"Total data processed: {len(unique_data)}")
     print(f"Data successfully exported to {output_file}.")
 
