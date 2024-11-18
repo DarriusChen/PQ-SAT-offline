@@ -299,17 +299,18 @@ def main():
         }
     }
 
+    unique_data = fetch_unique_data(client, idx_pattern, query, formatted_cs)
+    all_df = pd.json_normalize(unique_data)
+    all_df.drop("cipher_suite", axis=1, inplace=True)
+    all_df.fillna(value="null", inplace=True)
+    all_df = all_df.map(replace_empty)
+    all_df.columns = [col.replace('.', '_') for col in all_df.columns]
 
     # Set the name of export file
     dt1 = datetime.now().replace(tzinfo=timezone.utc)
     dt2 = dt1.astimezone(timezone(timedelta(hours=8)))  # transfer timezone to +8
     now = dt2.strftime("%Y_%m_%d_%H_%M_%S")
     output_file = "./crypto_inventory_report/inventory_report_" + now + ".xlsx"
-
-    unique_data = fetch_unique_data(client, idx_pattern, query, formatted_cs)
-    all_df = pd.json_normalize(unique_data)
-    all_df.fillna(value="null", inplace=True)
-    all_df = all_df.map(replace_empty)
 
     with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
         # write into excel
