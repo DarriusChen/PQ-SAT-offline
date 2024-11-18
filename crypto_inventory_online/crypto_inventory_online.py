@@ -209,6 +209,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
 
         for bucket in buckets:
 
+            time_ = datetime.fromtimestamp(bucket["key"].get('ts')).strftime("%Y/%m/%d-%H:%M:%S")
             origin_ip = bucket["key"]["origin_ip"]
             origin_port = bucket["key"]["origin_port"]
             response_ip = bucket["key"]["response_ip"]
@@ -221,6 +222,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
             isp_info = add_isp_1(response_ip)
 
             data_item = {
+                "time": time_,
                 "origin_ip": origin_ip,
                 "origin_port": origin_port,
                 "response_ip": response_ip,
