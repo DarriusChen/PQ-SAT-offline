@@ -41,6 +41,12 @@ read -p "Enter end time (YYYY-MM-DD_HH:MM:SS): " end_time
 # export START_TIME="$start_time"
 # export END_TIME="$end_time"
 
+# logging file
+if [ ! -f "./execution.log" ]; then
+    touch ./execution.log
+else
+    echo "logging file detected. continue..."
+fi
 
 echo "Running Docker container with OPS_HOST=$HOST...."
 docker run -d -it --rm --name pq-sat\
@@ -52,10 +58,10 @@ docker run -d -it --rm --name pq-sat\
 # docker-compose up
 
 # Create or update crontab log
-if [ -e "./cron_log.log" ]; then
-    # echo "Cron job executed at: $(date)" | sudo tee -a ./cron_test.log
-    echo "Cron job executed at: $(date)" | tee -a ./cron_test.log
-else
-    touch ./cron_log.log
-fi
+# if [ -e "./cron_log.log" ]; then
+#     # echo "Cron job executed at: $(date)" | sudo tee -a ./cron_test.log
+#     echo "Cron job executed at: $(date)" | tee -a ./cron_test.log
+# else
+#     touch ./cron_log.log
+# fi
 
