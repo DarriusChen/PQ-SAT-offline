@@ -43,7 +43,7 @@ read -p "Enter end time (YYYY-MM-DD_HH:MM:SS): " end_time
 
 
 echo "Running Docker container with OPS_HOST=$HOST...."
-docker run -it --rm --name pq-sat\
+docker run -d -it --rm --name pq-sat\
   -v "$(pwd)/crypto_inventory_report:/app/crypto_inventory_report" \
   -e OPS_HOST="$HOST" \
   -e START_TIME="$start_time" \
