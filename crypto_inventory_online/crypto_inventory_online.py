@@ -2,6 +2,7 @@ from opensearchpy import OpenSearch
 import json
 import pandas as pd
 from ipwhois import IPWhois
+from geoip2.database import Reader
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timezone, timedelta
@@ -165,6 +166,25 @@ def add_isp_1(ip):
         return {"isp": "null", "country": "null"}
 
 
+isp_reader = Reader('./ISP_Database/GeoLite2-ASN.mmdb')
+lc_reader = Reader('./ISP_Database/GeoLite2-City.mmdb')
+def get_isp(ip):
+    try:
+        isp_resp = isp_reader.asn(ip)
+        lc_resp = lc_reader.city(ip)
+        return {
+            "isp":isp_resp,
+            "country": lc_resp.country.name,
+            "city": lc_resp.city.name
+        }
+    except Exception as e:
+        # print(f"Error looking up IP {ip}: {e}")
+        return {
+            "isp": "null", 
+            "country": "null",
+            "city": "null"
+        }
+
 # ------------------------------------------------------------------ #
 
 
@@ -224,7 +244,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
             cipher_suite = bucket["cipher_suite"]["hits"]["hits"][0]["_source"].get("cipher", "null")
             mapped_cipher_suite = formatted_cs.get(cipher_suite, "null")
 
-            isp_info = add_isp_1(response_ip)
+            isp_info = get_isp(response_ip)
 
             data_item = {
                 "time": time_,
@@ -234,6 +254,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
                 "response_port": response_port,
                 "isp": isp_info.get('isp'),
                 "country": isp_info.get('country'),
+                "city": isp_info.get('city'),
                 "tls_version": tls_version,
                 "cipher_suite": mapped_cipher_suite
             }
