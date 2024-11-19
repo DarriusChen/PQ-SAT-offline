@@ -227,7 +227,7 @@ def save_to_excel(writer, data, start_row):
 # ------------------------------------------------------------------ #
 
 # Cope with unique data from OpenSearch, then map with ciphersuite data
-def fetch_unique_data(client, index_pattern, query, formatted_cs, writer, chunk_size=50000):
+def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
 
     # Know how many indices that match the pattern
     count_query = {
@@ -283,13 +283,12 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer, chunk_
         # Update tqdm progress bar
         pbar.update(len(buckets))
 
-        # Check if data should be written into excel
-        if len(unique_data) >= chunk_size:
-            save_to_excel(writer, unique_data, current_row)
-            ps_logger.info(f"No.{batch_count} batch has been processed")
-            current_row += len(unique_data) # Update start row
-            unique_data = []  # Clear space
-            batch_count += 1
+
+        save_to_excel(writer, unique_data, current_row)
+        ps_logger.info(f"No.{batch_count} batch has been processed")
+        current_row += len(unique_data) # Update start row
+        unique_data = []  # Clear space
+        batch_count += 1
 
         if "after_key" in response["aggregations"]["unique_combinations"]:
             after_key = response["aggregations"]["unique_combinations"]["after_key"]
