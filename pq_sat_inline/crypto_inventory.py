@@ -216,23 +216,35 @@ def get_timestamp_from_input(date_string):
 
 # ------------------------------------------------------------------ #
 
-# 處理從 OpenSearch 查詢返回的唯一組合資料，並映射 ciphersuite
-def fetch_unique_data(client, index_pattern, query, formatted_cs):
+def save_to_excel(writer, data, start_row):
+    df = pd.json_normalize(data)
+    df.drop("cipher_suite", axis=1, inplace=True)
+    df.fillna(value="null", inplace=True)
+    df = df.map(replace_empty)
+    df.columns = [col.replace('.', '_') for col in df.columns]
+    df.to_excel(writer, sheet_name="Inventory Report", index=False, startrow=start_row, header=start_row == 0)
+
+# ------------------------------------------------------------------ #
+
+# Cope with unique data from OpenSearch, then map with ciphersuite data
+def fetch_unique_data(client, index_pattern, query, formatted_cs, writer, chunk_size=50000):
 
     # Know how many indices that match the pattern
-
     count_query = {
         "query": query["query"]
     }
     total_count = client.count(index=index_pattern, body=count_query)['count']
     print(f"\nCollecting {total_count} indices from opensearch...")
+    ps_logger.info(f"Collecting {total_count} indices from opensearch...")
+    ps_logger.info(f"\nThere will be {round(total_count/5000)+1} batches. Starting process...")
+
     # Initialize tqdm progress bar
     pbar = tqdm(file=sys.stdout, total=total_count, desc="Fetching unique data", unit="doc")
 
     unique_data = []
     after_key = None
-
     batch_count = 0
+    current_row = 0 # to specify the start row in excel
 
     while True:
         if after_key:
@@ -271,16 +283,25 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
         # Update tqdm progress bar
         pbar.update(len(buckets))
 
+        # Check if data should be written into excel
+        if len(unique_data) >= chunk_size:
+            save_to_excel(writer, unique_data, current_row)
+            ps_logger.info(f"No.{batch_count} batch has been processed")
+            current_row += len(unique_data) # Update start row
+            unique_data = []  # Clear space
+            batch_count += 1
+
         if "after_key" in response["aggregations"]["unique_combinations"]:
             after_key = response["aggregations"]["unique_combinations"]["after_key"]
         else:
             break
 
+    # Write in the remmain data
+    if unique_data:
         batch_count += 1
+        save_to_excel(writer, unique_data, current_row)
         
-        ps_logger.info(f"batch No.{batch_count} is executed.")
-
-    return unique_data
+    return batch_count, current_row
 
 # ------------------------------------------------------------------ #
 
@@ -335,13 +356,6 @@ def main():
         }
     }
 
-    unique_data = fetch_unique_data(client, idx_pattern, query, formatted_cs)
-    all_df = pd.json_normalize(unique_data)
-    all_df.drop("cipher_suite", axis=1, inplace=True)
-    all_df.fillna(value="null", inplace=True)
-    all_df = all_df.map(replace_empty)
-    all_df.columns = [col.replace('.', '_') for col in all_df.columns]
-
     # Set the name of export file
     dt1 = datetime.now().replace(tzinfo=timezone.utc)
     dt2 = dt1.astimezone(timezone(timedelta(hours=8)))  # transfer timezone to +8
@@ -349,11 +363,9 @@ def main():
     output_file = "./crypto_inventory_report/inventory_report_" + now + ".xlsx"
 
     with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
-        # write into excel
-        all_df.to_excel(writer, sheet_name="Inventory Report", index=False)
+        batch_count, all_rows = fetch_unique_data(client, idx_pattern, query, formatted_cs, writer)
 
-    ps_logger.info(f"Total data processed: {len(unique_data)}")
-    print(f"Total data processed: {len(unique_data)}")
+    ps_logger.info(f"Data successfully processed. Total rows written: {all_rows} in {batch_count} batches to {output_file}.")
     print(f"Data successfully exported to {output_file}.")
 
 
