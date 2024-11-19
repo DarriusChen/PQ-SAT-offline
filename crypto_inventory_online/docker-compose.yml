@@ -1,0 +1,20 @@
+services:
+  cipher-mapper-online:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - OPS_HOST=${HOST}
+      - OPS_AUTH=${OPS_AUTH:-username:passwords}
+      - START_TIME=${START_TIME}
+      - END_TIME=${END_TIME}
+      - PYTHONUNBUFFERED=1 # disable output buffering
+    container_name: cipher-mapper-online
+    volumes:
+      - ./crypto_inventory_report:/app/crypto_inventory_report  # Persist output reports
+      - ./crypto_inventory_online.py:/app/crypto_inventory_online.py  # Mount Python script to allow updates
+      - ./.env:/app/.env  # Mount environment variables file
+    tty: true
+    stdin_open: true
+    command: ["python", "/app/crypto_inventory_online.py"]
+    # working_dir: /app
