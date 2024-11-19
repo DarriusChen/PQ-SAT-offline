@@ -23,7 +23,7 @@ fi
 # Build and run Docker container, and remove after finishing the task (--rm)
 echo "OPS_AUTH is valid: $OPS_AUTH"
 # Check if docker image exists
-IMAGE_NAME="cipher-mapper-online"
+IMAGE_NAME="pq-sat-inline"
 if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
   echo "Docker image '$IMAGE_NAME' already exists. Skipping build."
 else
@@ -52,6 +52,6 @@ docker run -d -it --rm --name pq-sat\
   -e OPS_HOST="$HOST" \
   -e START_TIME="$start_time" \
   -e END_TIME="$end_time" \
-  cipher-mapper-online
+  pq-sat-inline
 # docker-compose up
 
