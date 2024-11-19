@@ -12,9 +12,14 @@ import time
 import logging
 
 # ------------------------------------------------------------------ #
+
+# Set logging config
+
 logging.basicConfig(filename='./execution.log', format='%(filename)s: %(message)s',
                     datefmt="%Y-%m-%d %H:%M:%S",
                     level=logging.DEBUG)
+# Disable ipwhois logging
+logging.getLogger('ipwhois').disabled = True
 
 # Load environment variables from .env file
 load_dotenv()
