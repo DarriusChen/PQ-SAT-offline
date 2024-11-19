@@ -1,0 +1,4 @@
+# .dockerignore
+docker-compose.yml
+*.sh
+cron_test.log
