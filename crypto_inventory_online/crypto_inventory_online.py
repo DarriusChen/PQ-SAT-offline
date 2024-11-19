@@ -182,7 +182,7 @@ def get_isp(ip):
         isp_resp = isp_reader.asn(ip)
         lc_resp = lc_reader.city(ip)
         return {
-            "isp":isp_resp,
+            "isp":isp_resp.autonomous_system_organization,
             "country": lc_resp.country.name,
             "city": lc_resp.city.name
         }
