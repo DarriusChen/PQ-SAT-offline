@@ -2,4 +2,8 @@
 .DS_Store
 
 # pcap files
-.crypto_inventory_offline/pcap_files/
+pq_sat_local/pcap_files/
+pcap_files_1/
+
+# log file (for testing)
+execution.log
