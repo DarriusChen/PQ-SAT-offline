@@ -14,20 +14,29 @@ import logging
 
 # ------------------------------------------------------------------ #
 
-# Set logging config
+# Set logging config with isolate logger
 
-logging.basicConfig(filename='./execution.log', format='%(filename)s: %(message)s',
-                    datefmt="%Y-%m-%d %H:%M:%S",
-                    level=logging.DEBUG)
-# Disable ipwhois logging
-logging.getLogger('ipwhois').disabled = True
+# Logger
+ps_logger = logging.getLogger('pqsat-execution')
+ps_logger.setLevel(logging.DEBUG)  # 設定 Logger 等級
 
-# Load environment variables from .env file
-load_dotenv()
+# FileHandler
+file_handler = logging.FileHandler('./execution.log')
+file_handler.setLevel(logging.DEBUG)
+
+# Formatter
+formatter = logging.Formatter('%(asctime)s - %(module)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+file_handler.setFormatter(formatter)
+
+# Add Handler to Logger
+ps_logger.addHandler(file_handler)
 
 # ------------------------------------------------------------------ #
 
 # Get data from opensearch
+
+# Load environment variables from .env file
+load_dotenv()
 
 host = os.getenv("OPS_HOST")
 port = os.getenv("OPS_PORT")
@@ -269,7 +278,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
 
         batch_count += 1
         
-        logging.info(f"batch No.{batch_count} is executed.")
+        ps_logger.info(f"batch No.{batch_count} is executed.")
 
     return unique_data
 
@@ -343,7 +352,7 @@ def main():
         # write into excel
         all_df.to_excel(writer, sheet_name="Inventory Report", index=False)
 
-    logging.info(f"Total data processed: {len(unique_data)}")
+    ps_logger.info(f"Total data processed: {len(unique_data)}")
     print(f"Total data processed: {len(unique_data)}")
     print(f"Data successfully exported to {output_file}.")
 
