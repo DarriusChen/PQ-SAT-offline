@@ -11,9 +11,6 @@ else
   exit 1
 fi
 
-# Export HOST to make it accessible to Docker Compose
-# export HOST
-
 # Check if the env variable is correctly modified from the default value
 if [[ -z "$OPS_HOST" || "$HOST" == opensearch_host ]]; then
   echo "Error: OPS_HOST has not been changed from the default value: $OPS_HOST. It should be modified."
@@ -57,12 +54,4 @@ docker run -d -it --rm --name pq-sat\
   -e END_TIME="$end_time" \
   cipher-mapper-online
 # docker-compose up
-
-# Create or update crontab log
-# if [ -e "./cron_log.log" ]; then
-#     # echo "Cron job executed at: $(date)" | sudo tee -a ./cron_test.log
-#     echo "Cron job executed at: $(date)" | tee -a ./cron_test.log
-# else
-#     touch ./cron_log.log
-# fi
 
