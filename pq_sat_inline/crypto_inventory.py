@@ -285,7 +285,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
 
 
         save_to_excel(writer, unique_data, current_row)
-        ps_logger.info(f"No.{batch_count} batch has been processed")
+        ps_logger.info(f"No.{batch_count+1} batch has been processed")
         current_row += len(unique_data) # Update start row
         unique_data = []  # Clear space
         batch_count += 1
