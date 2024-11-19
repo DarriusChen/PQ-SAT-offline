@@ -29,9 +29,9 @@ The generated reports provide detailed insights with the following structure:
 | 192.168.70.191    | 41312       | 185.125.188.55    | 443           | TLSv1.3    | UK-CANONICAL-20151111  | GB      | TLS_CHACHA20_POLY1305_SHA256        | Recommended     | 0x13              | TLS1.3      | Transport Layer Security   | TLS                                      | None                                                                                                    | PFS               | ECDHE                                      | None                                                                                           | None             | Anonymous                                        | None                                                                                             | AEAD          | ChaCha stream cipher and Poly1305       | None                                                                                         | AEAD      | ChaCha stream cipher and Poly1305       | None                                                                                           | RFC 8446       | [RFC 8446](https://ciphersuite.info/rfc/8446/) |
 ---
 ## Usage Instructions
-### OpenSearch Application (crypto_inventory_online)
+### OpenSearch Application ( pq_sat_inline )
 
-1. **Mount to the Correct Directory**: Ensure that you are in the `crypto_inventory_online` directory.
+1. **Mount to the Correct Directory**: Ensure that you are in the `pq_sat_inline` directory.
 
 2. **Configuration**:
    - Modify the environment variables in the `.env` file according to your setup:
@@ -39,7 +39,7 @@ The generated reports provide detailed insights with the following structure:
      OPS_HOST=opensearch_host
      OPS_PORT=9200 
      OPS_AUTH=username:passwords
-     CS_FILE=ciphersuites.json
+     CS_FILE=cipher_suites.json
      IDX_PTN=.ds-zeek_ssl*
      ```
    - Ensure to change `OPS_HOST` and `OPS_AUTH` before running the script to avoid errors.
@@ -49,21 +49,16 @@ The generated reports provide detailed insights with the following structure:
      ```bash
      bash crypto_inventory_online.sh
      ```
+   - You can also pass the host variable directly after the command, then the OPS_HOST variable will be overwritten:
+     ```bash
+     bash crypto_inventory_online.sh 192.168.100.100
+     ```
 
-4. **Setting the Host IP**:
-   - You can set the host IP in two ways:
-     - **Option 1**: Modify the parameter in the `.env` file:
-       ```
-       OPS_HOST=192.168.50.123
-       OPS_PORT=9200 
-       ```
-     - **Option 2**: Pass the host variable directly after the command:
-       ```bash
-       # Change the host to 192.168.70.85
-       bash crypto_inventory_online.sh 192.168.70.85
-       ```
+4. **Specify the time interval ( Enter start time / end time )**:
+   - The format is: YYYY-MM-DD_hh:mm:ss
+   - EX: 2024-10-10_00:00:00
 
-### PCAP Application (crypto_inventory_offline)
+### PCAP Application ( pq_sat_local )
 
 1. **Mount to the Correct Directory**: Ensure that you are in the `crypto_inventory_offline` directory.
 
@@ -83,7 +78,7 @@ The generated reports provide detailed insights with the following structure:
 
 The project is organized as follows:
 ```plaintext
-crypto_inventory_offline/
+pq_sat_local/
 ├── pcap_files/
 ├── .env
 ├── Dockerfile
@@ -94,7 +89,11 @@ crypto_inventory_offline/
 ├── docker-compose.yaml
 ├── requirements.txt
 └── zeek_analysis.sh
-crypto_inventory_online/
+pq_sat_inline/
+├── ISP_Database/
+├────── GeoLite2-ASN.mmdb
+├────── GeoLite2-City.mmdb
+├── .dockerignore
 ├── .env
 ├── Dockerfile
 ├── README.md
