@@ -193,7 +193,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
     total_count = client.count(index=index_pattern, body=count_query)['count']
     print(f"\nCollecting {total_count} indices from opensearch...")
     # Initialize tqdm progress bar
-    pbar = tqdm(total=total_count, desc="Fetching unique data", unit="doc")
+    pbar = tqdm(file=sys.stdout, total=total_count, desc="Fetching unique data", unit="doc")
 
     unique_data = []
     after_key = None
@@ -209,7 +209,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs):
 
         for bucket in buckets:
 
-            time_ = datetime.fromtimestamp(bucket["key"].get('ts')).strftime("%Y/%m/%d-%H:%M:%S")
+            time_ = datetime.fromtimestamp(bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000).strftime("%Y/%m/%d-%H:%M:%S")
             origin_ip = bucket["key"]["origin_ip"]
             origin_port = bucket["key"]["origin_port"]
             response_ip = bucket["key"]["response_ip"]
@@ -292,6 +292,7 @@ def main():
                 "size": 5000
             },
             "aggs": {
+                "time": {"top_hits": {"size": 1, "_source": ["ts"]}},
                 "tls_version": {"top_hits": {"size": 1, "_source": ["version"]}},
                 "cipher_suite": {"top_hits": {"size": 1, "_source": ["cipher"]}}
             }
