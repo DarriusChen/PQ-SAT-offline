@@ -225,7 +225,7 @@ def save_to_excel(writer, data, start_row):
     df.fillna(value="null", inplace=True)
     df = df.map(replace_empty)
     df.columns = [col.replace('.', '_') for col in df.columns]
-    df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype('str')
+    df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
     df.to_excel(writer, sheet_name="Inventory Report", index=False, startrow=start_row, header=start_row == 0)
 
 # ------------------------------------------------------------------ #
