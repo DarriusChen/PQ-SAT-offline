@@ -49,7 +49,10 @@ client = OpenSearch(
     verify_certs=False,
     ssl_assert_hostname=False,
     ssl_show_warn=False,  # Add this line to suppress warnings
-    http_compress=True
+    http_compress=True,
+    timeout=60,  # Increase timeout to 60 seconds
+    max_retries=10,  # Allow up to 10 retries
+    retry_on_timeout=True  # Enable retry on timeout
 )
 
 
@@ -222,6 +225,7 @@ def save_to_excel(writer, data, start_row):
     df.fillna(value="null", inplace=True)
     df = df.map(replace_empty)
     df.columns = [col.replace('.', '_') for col in df.columns]
+    df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype('str')
     df.to_excel(writer, sheet_name="Inventory Report", index=False, startrow=start_row, header=start_row == 0)
 
 # ------------------------------------------------------------------ #
