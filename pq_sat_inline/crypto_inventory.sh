@@ -46,7 +46,7 @@ else
 fi
 
 echo "Running Docker container with OPS_HOST=$HOST...."
-docker run -d -it --rm --name pq-sat\
+docker run -it --rm --name pq-sat\
   -v "$(pwd)/crypto_inventory_report:/app/crypto_inventory_report" \
   -v "$(pwd)/execution.log:/app/execution.log" \
   -e OPS_HOST="$HOST" \
