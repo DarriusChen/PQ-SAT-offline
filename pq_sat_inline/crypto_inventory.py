@@ -158,13 +158,104 @@ def save_to_csv(file_path, data, write_header):
     :param data: List of dictionaries to write as rows
     :param write_header: Boolean indicating if the header row should be written
     """
-    df = pd.json_normalize(data)
-    df.drop("cipher_suite", axis=1, inplace=True)
-    df.fillna(value="null", inplace=True)
-    df = df.map(replace_empty)
-    df.columns = [col.replace('.', '_') for col in df.columns]
-    df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
-    df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
+    try:
+        df = pd.json_normalize(data)
+        df.drop("cipher_suite", axis=1, inplace=True)
+        df.fillna(value="null", inplace=True)
+        df = df.map(replace_empty)
+        df.columns = [col.replace('.', '_') for col in df.columns]
+        if 'cipher_suite_reference_url' in df.columns:  # ensure field exists
+            df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
+        df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
+    except Exception as e:
+        ps_logger.error("Error saving to csv")
+
+# ------------------------------------------------------------------ #
+
+def get_total_count(client, index_pattern, query):
+    """
+    Get the total count of documents matching the query in OpenSearch.
+
+    :param client: OpenSearch client
+    :param index_pattern: Index pattern to match
+    :param query: Query conditions to apply
+    :return: Total count of documents
+    """
+    count_query = {"query": query["query"]}
+    total_count = client.count(index=index_pattern, body=count_query)['count']
+    return total_count
+
+# ------------------------------------------------------------------ #
+
+def fetch_data_from_opensearch(client, index_pattern, query, after_key):
+    """
+    Fetch data from OpenSearch using the given query and after_key.
+
+    :param client: OpenSearch client
+    :param index_pattern: Index pattern to match
+    :param query: Query conditions to apply
+    :param after_key: Pagination key for composite aggregation
+    :return: Response from OpenSearch
+    """
+    if after_key:
+        query["aggs"]["unique_combinations"]["composite"]["after"] = after_key
+    for attempt in range(3):  # retry 3 times
+        try:
+            return client.search(index=index_pattern, body=query)
+        except Exception as e:
+            ps_logger.error(f"OpenSearch query failed (attempt {attempt + 1}): {e}")
+            if attempt == 2:  # stop at 3th retry
+                raise RuntimeError("OpenSearch query failed after 3 attempts.")
+            time.sleep(5)  # avoid instantaneous retry
+# ------------------------------------------------------------------ #
+
+def process_buckets(buckets, formatted_cs):
+    """
+    Process buckets from OpenSearch response and map cipher suite data.
+
+    :param buckets: List of buckets from OpenSearch response
+    :param formatted_cs: Dictionary of formatted cipher suite data
+    :return: List of processed data items
+    """
+    isp_cache = {}  # temp storage for isp retrieval
+    processed_data = []
+    for bucket in buckets:
+        try:
+            time_ = datetime.fromtimestamp(bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000).strftime("%Y/%m/%d-%H:%M:%S")
+            origin_ip = bucket["key"]["origin_ip"]
+            origin_port = bucket["key"]["origin_port"]
+            response_ip = bucket["key"]["response_ip"]
+            response_port = bucket["key"]["response_port"]
+            tls_version = bucket["tls_version"]["hits"]["hits"][0]["_source"].get("version", "null")
+            cipher_suite = bucket["cipher_suite"]["hits"]["hits"][0]["_source"].get("cipher", "null")
+            mapped_cipher_suite = formatted_cs.get(cipher_suite, "null")
+            isp_info = get_isp(response_ip)
+
+            # ISP temp storage
+            if response_ip not in isp_cache:
+                isp_cache[response_ip] = get_isp(response_ip)
+            isp_info = isp_cache[response_ip]
+
+
+            data_item = {
+                "time": time_,
+                "origin_ip": origin_ip,
+                "origin_port": origin_port,
+                "response_ip": response_ip,
+                "response_port": response_port,
+                "isp": isp_info.get('isp'),
+                "country": isp_info.get('country'),
+                "city": isp_info.get('city'),
+                "tls_version": tls_version,
+                "cipher_suite": mapped_cipher_suite
+            }
+            processed_data.append(data_item)
+        except KeyError as e:
+            ps_logger.error(f"KeyError processing bucket: {bucket}, error: {e}")
+        except Exception as e:
+            ps_logger.error(f"Unexpected error processing bucket: {bucket}, error: {e}")
+            continue
+    return processed_data
 
 # ------------------------------------------------------------------ #
 
@@ -198,70 +289,43 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
 
     unique_data = []
     after_key = None
-    batch_count = 0
+    batch_count = 1
     data_count = 0
     write_header = True  # Only write header while writing in the first batch
 
     while True:
-
         try: 
-            if after_key:
-                query["aggs"]["unique_combinations"]["composite"]["after"] = after_key
-
-            response = client.search(index=index_pattern, body=query)
+            response = fetch_data_from_opensearch(client, index_pattern, query, after_key)
             buckets = response["aggregations"]["unique_combinations"]["buckets"]
 
-            for bucket in buckets:
+            batch_data = process_buckets(buckets, formatted_cs)
 
-                time_ = datetime.fromtimestamp(bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000).strftime("%Y/%m/%d-%H:%M:%S")
-                origin_ip = bucket["key"]["origin_ip"]
-                origin_port = bucket["key"]["origin_port"]
-                response_ip = bucket["key"]["response_ip"]
-                response_port = bucket["key"]["response_port"]
-                # Grab tls_version and cipher field from aggregation results
-                tls_version = bucket["tls_version"]["hits"]["hits"][0]["_source"].get("version", "null")
-                cipher_suite = bucket["cipher_suite"]["hits"]["hits"][0]["_source"].get("cipher", "null")
-                mapped_cipher_suite = formatted_cs.get(cipher_suite, "null")
-
-                isp_info = get_isp(response_ip)
-
-                data_item = {
-                    "time": time_,
-                    "origin_ip": origin_ip,
-                    "origin_port": origin_port,
-                    "response_ip": response_ip,
-                    "response_port": response_port,
-                    "isp": isp_info.get('isp'),
-                    "country": isp_info.get('country'),
-                    "city": isp_info.get('city'),
-                    "tls_version": tls_version,
-                    "cipher_suite": mapped_cipher_suite
-                }
-                unique_data.append(data_item)
-            # Update tqdm progress bar
-            pbar.update(len(buckets))
-
-
-            save_to_csv(csv_file, unique_data, write_header)
-            write_header = False  # No writing header from second row
-            data_count += len(unique_data) # Update start row
-            unique_data = []  # Clear space
-            batch_count += 1
+            save_to_csv(csv_file, batch_data, write_header)
+            write_header = False
+            data_count += len(batch_data)
             ps_logger.info(f"No.{batch_count} batch has been processed")
+            pbar.update(len(buckets))
+            batch_count += 1
+
+            after_key = response["aggregations"]["unique_combinations"].get("after_key")
+            if not after_key:
+                break
 
         except Exception as e:
-            ps_logger.error(e)
-
-        if "after_key" in response["aggregations"]["unique_combinations"]:
-            after_key = response["aggregations"]["unique_combinations"]["after_key"]
-        else:
+            ps_logger.error(f"Unexpected error in main loop: {e}")
             break
 
     # Write in the remmain data
     if unique_data:
         batch_count += 1
-        ps_logger.info(f"No.{batch_count} batch has been processed")
-        save_to_csv(csv_file, unique_data, write_header)
+        try:
+            save_to_csv(csv_file, unique_data, write_header)
+            ps_logger.info(f"No.{batch_count} batch has been processed")
+        except Exception as e:
+            ps_logger.critical(f"Failed to save remaining data. Error: {e}")
+
+    pbar.close()
+    ps_logger.info(f"Total batches: {batch_count}, Total rows: {data_count}")
     
     return batch_count, data_count
 
