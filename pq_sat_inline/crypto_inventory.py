@@ -242,15 +242,14 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
             unique_data = []  # Clear space
             batch_count += 1
             ps_logger.info(f"No.{batch_count} batch has been processed")
-
-            if "after_key" in response["aggregations"]["unique_combinations"]:
-                after_key = response["aggregations"]["unique_combinations"]["after_key"]
-            else:
-                break
-
+            
         except Exception as e:
             ps_logger.error(e)
 
+        if "after_key" in response["aggregations"]["unique_combinations"]:
+            after_key = response["aggregations"]["unique_combinations"]["after_key"]
+        else:
+            break
 
     # Write in the remmain data
     if unique_data:
