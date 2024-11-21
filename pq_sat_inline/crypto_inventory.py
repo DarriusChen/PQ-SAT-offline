@@ -251,58 +251,64 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
     current_row = 0 # to specify the start row in excel
 
     while True:
-        if after_key:
-            query["aggs"]["unique_combinations"]["composite"]["after"] = after_key
 
-        response = client.search(index=index_pattern, body=query)
-        buckets = response["aggregations"]["unique_combinations"]["buckets"]
+        try: 
+            if after_key:
+                query["aggs"]["unique_combinations"]["composite"]["after"] = after_key
 
-        for bucket in buckets:
+            response = client.search(index=index_pattern, body=query)
+            buckets = response["aggregations"]["unique_combinations"]["buckets"]
 
-            time_ = datetime.fromtimestamp(bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000).strftime("%Y/%m/%d-%H:%M:%S")
-            origin_ip = bucket["key"]["origin_ip"]
-            origin_port = bucket["key"]["origin_port"]
-            response_ip = bucket["key"]["response_ip"]
-            response_port = bucket["key"]["response_port"]
-            # Grab tls_version and cipher field from aggregation results
-            tls_version = bucket["tls_version"]["hits"]["hits"][0]["_source"].get("version", "null")
-            cipher_suite = bucket["cipher_suite"]["hits"]["hits"][0]["_source"].get("cipher", "null")
-            mapped_cipher_suite = formatted_cs.get(cipher_suite, "null")
+            for bucket in buckets:
 
-            isp_info = get_isp(response_ip)
+                time_ = datetime.fromtimestamp(bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000).strftime("%Y/%m/%d-%H:%M:%S")
+                origin_ip = bucket["key"]["origin_ip"]
+                origin_port = bucket["key"]["origin_port"]
+                response_ip = bucket["key"]["response_ip"]
+                response_port = bucket["key"]["response_port"]
+                # Grab tls_version and cipher field from aggregation results
+                tls_version = bucket["tls_version"]["hits"]["hits"][0]["_source"].get("version", "null")
+                cipher_suite = bucket["cipher_suite"]["hits"]["hits"][0]["_source"].get("cipher", "null")
+                mapped_cipher_suite = formatted_cs.get(cipher_suite, "null")
 
-            data_item = {
-                "time": time_,
-                "origin_ip": origin_ip,
-                "origin_port": origin_port,
-                "response_ip": response_ip,
-                "response_port": response_port,
-                "isp": isp_info.get('isp'),
-                "country": isp_info.get('country'),
-                "city": isp_info.get('city'),
-                "tls_version": tls_version,
-                "cipher_suite": mapped_cipher_suite
-            }
-            unique_data.append(data_item)
-        # Update tqdm progress bar
-        pbar.update(len(buckets))
+                isp_info = get_isp(response_ip)
+
+                data_item = {
+                    "time": time_,
+                    "origin_ip": origin_ip,
+                    "origin_port": origin_port,
+                    "response_ip": response_ip,
+                    "response_port": response_port,
+                    "isp": isp_info.get('isp'),
+                    "country": isp_info.get('country'),
+                    "city": isp_info.get('city'),
+                    "tls_version": tls_version,
+                    "cipher_suite": mapped_cipher_suite
+                }
+                unique_data.append(data_item)
+            # Update tqdm progress bar
+            pbar.update(len(buckets))
 
 
-        save_to_excel(writer, unique_data, current_row)
-        current_row += len(unique_data) # Update start row
-        unique_data = []  # Clear space
-        batch_count += 1
-        ps_logger.info(f"No.{batch_count} batch has been processed")
+            save_to_excel(writer, unique_data, current_row)
+            current_row += len(unique_data) # Update start row
+            unique_data = []  # Clear space
+            batch_count += 1
+            ps_logger.info(f"No.{batch_count} batch has been processed")
 
-        if "after_key" in response["aggregations"]["unique_combinations"]:
-            after_key = response["aggregations"]["unique_combinations"]["after_key"]
-        else:
-            ps_logger.info(f"No.{batch_count+1} batch has been processed")
-            break
+            if "after_key" in response["aggregations"]["unique_combinations"]:
+                after_key = response["aggregations"]["unique_combinations"]["after_key"]
+            else:
+                break
+
+        except Exception as e:
+            ps_logger.error(e)
+
 
     # Write in the remmain data
     if unique_data:
         batch_count += 1
+        ps_logger.info(f"No.{batch_count} batch has been processed")
         save_to_excel(writer, unique_data, current_row)
         
     return batch_count, current_row
