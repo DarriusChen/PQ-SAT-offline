@@ -32,6 +32,39 @@ The generated reports provide detailed insights with the following structure:
 | 2024/10/12-15:50:21 | 192.168.126.117 | 49152       | 52.113.194.132 | 443           | MICROSOFT-CORP-MSN-AS-BLOCK | United States | null      | TLSv12      | TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 | secure                | ['0xC0', '0x30']                | ['TLS1.2', 'TLS1.3']               | null                                     | Transport Layer Security (TLS)              | [['RSA Authentication', 'There are reports that servers using the RSA authentication algorithm with keys longer than 3072-bit may experience heavy performance issues leading to connection timeouts and even service unavailability if many clients open simultaneous connections.']] | PFS                                        | Elliptic Curve Diffie-Hellman Ephemeral (ECDHE) | [['RSA Authentication', 'There are reports that servers using the RSA authentication algorithm with keys longer than 3072-bit may experience heavy performance issues leading to connection timeouts and even service unavailability if many clients open simultaneous connections.']] | null                                           | Rivest Shamir Adleman algorithm (RSA)             | [['RSA Authentication', 'There are reports that servers using the RSA authentication algorithm with keys longer than 3072-bit may experience heavy performance issues leading to connection timeouts and even service unavailability if many clients open simultaneous connections.']] | AEAD                                       | Advanced Encryption Standard with 256bit key in Galois/Counter mode (AES 256 GCM) | null                                            | AEAD                                 | Advanced Encryption Standard with 256bit key in Galois/Counter mode (AES 256 GCM) | null                                      | RFC 5289                    | [https://ciphersuite.info/rfc/5289/](https://ciphersuite.info/rfc/5289/) |
 | 2024/10/17-12:24:35 | 192.168.126.117 | 49154       | 142.251.8.95   | 443           | GOOGLE                      | United States | null      | TLSv13      | TLS_AES_128_GCM_SHA256                | recommended           | ['0x13', '0x01']                | ['TLS1.3']                         | null                                     | Transport Layer Security (TLS)              | null                                                                                                                                                                                                                                                                                   | PFS                                        | ECDHE                                           | null                                                                                                                                                                                                                                                                                   | null                                           | null                                              | null                                                                                                                                                                                                                                                                                   | AEAD                                       | Advanced Encryption Standard with 128bit key in Galois/Counter mode (AES 128 GCM) | null                                            | AEAD                                 | Advanced Encryption Standard with 128bit key in Galois/Counter mode (AES 128 GCM) | null                                      | RFC 8446                    | [https://ciphersuite.info/rfc/8446/](https://ciphersuite.info/rfc/8446/) |
 ---
+### Data description
+
+- **time**: The timestamp of the connection (e.g., `2024/10/12-04:44:35`).
+- **origin_ip**: The IP address of the origin host (e.g., `192.168.126.105`).
+- **origin_port**: The port used by the origin host (e.g., `42970`).
+- **response_ip**: The IP address of the response host (e.g., `23.200.152.77`).
+- **response_port**: The port used by the response host (e.g., `443`).
+- **isp**: The Internet Service Provider of the response IP (e.g., `Akamai International B.V.`).
+- **country**: The country where the response IP is located (e.g., `Hong Kong`).
+- **city**: The city where the response IP is located (e.g., `Hong Kong`).
+- **tls_version**: The TLS version used in the connection (e.g., `TLSv12` or `TLSv13`).
+- **cipher_suite_name**: The name of the cipher suite used (e.g., `TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384`).
+- **cipher_suite_security**: The security level of the cipher suite (e.g., `secure` or `recommended`).
+- **cipher_suite_attribute_hex_code**: The hex code attributes of the cipher suite (e.g., `['0xC0', '0x30']`).
+- **cipher_suite_attribute_tls_version**: The TLS versions supported by the cipher suite (e.g., `['TLS1.2', 'TLS1.3']`).
+- **cipher_suite_crypyto_system_protocol_tag**: The cryptographic protocol tag (e.g., `Transport Layer Security (TLS)`).
+- **cipher_suite_crypyto_system_protocol_method**: The method used by the cryptographic protocol (e.g., `RSA Authentication`).
+- **cipher_suite_crypyto_system_protocol_weakness**: Known weaknesses of the cryptographic protocol (e.g., `Reports of performance issues for keys longer than 3072-bit`).
+- **cipher_suite_crypyto_system_keyxchange_tag**: The key exchange algorithm tag (e.g., `PFS`).
+- **cipher_suite_crypyto_system_keyxchange_method**: The method used for key exchange (e.g., `Elliptic Curve Diffie-Hellman Ephemeral (ECDHE)`).
+- **cipher_suite_crypyto_system_keyxchange_weakness**: Weaknesses in the key exchange method (e.g., `None`).
+- **cipher_suite_crypyto_system_authentication_tag**: The authentication algorithm tag (e.g., `null` or `RSA`).
+- **cipher_suite_crypyto_system_authentication_method**: The method used for authentication (e.g., `Rivest Shamir Adleman algorithm (RSA)`).
+- **cipher_suite_crypyto_system_authentication_weakness**: Weaknesses in the authentication method (e.g., `Reports of performance issues for RSA keys longer than 3072-bit`).
+- **cipher_suite_crypyto_system_encryption_tag**: The encryption algorithm tag (e.g., `AEAD`).
+- **cipher_suite_crypyto_system_encryption_method**: The method used for encryption (e.g., `Advanced Encryption Standard with 256-bit key in Galois/Counter mode (AES 256 GCM)`).
+- **cipher_suite_crypyto_system_encryption_weakness**: Weaknesses in the encryption method (e.g., `None`).
+- **cipher_suite_crypyto_system_hash_tag**: The hashing algorithm tag (e.g., `AEAD`).
+- **cipher_suite_crypyto_system_hash_method**: The method used for hashing (e.g., `Advanced Encryption Standard with 256-bit key in Galois/Counter mode (AES 256 GCM)`).
+- **cipher_suite_crypyto_system_hash_weakness**: Weaknesses in the hashing method (e.g., `None`).
+- **cipher_suite_reference_name**: The reference name for the cipher suite (e.g., `RFC 5289`).
+- **cipher_suite_reference_url**: The reference URL for the cipher suite (e.g., `[RFC 5289](https://ciphersuite.info/rfc/5289/)`).
+---
 ## Usage Instructions
 ### OpenSearch Application ( pq_sat_inline )
 
