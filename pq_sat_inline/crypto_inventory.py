@@ -41,6 +41,19 @@ load_dotenv()
 host = os.getenv("OPS_HOST")
 port = os.getenv("OPS_PORT")
 auth = os.getenv("OPS_AUTH")
+idx_pattern = os.getenv("IDX_PTN")
+
+cipher_file = os.getenv("CS_FILE")
+
+start_time = os.getenv("START_TIME")
+end_time = os.getenv("END_TIME")
+
+isp_reader = Reader(os.getenv('ISP_ASN'))
+lc_reader = Reader(os.getenv('ISP_CITY'))
+
+# ------------------------------------------------------------------ #
+
+# Set OpenSearch client
 
 client = OpenSearch(
     hosts=[{"host": host, "port": port}],
@@ -71,22 +84,14 @@ formatted_cs = load_ciphersuite_data("cipher_suites.json")
 # ------------------------------------------------------------------ #
 
 # Add each ISP info
-@lru_cache(maxsize=1000)  # Quickly go through the info of searched IP
-def add_isp_1(ip):
-    try:
-        whois_info = IPWhois(ip).lookup_rdap()
-        return {
-            "isp": whois_info.get("network", {}).get("name"),
-            "country": whois_info.get("asn_country_code"),
-        }
-    except Exception as e:
-        # print(f"Error looking up IP {ip}: {e}")
-        return {"isp": "null", "country": "null"}
 
-
-isp_reader = Reader('./ISP_Database/GeoLite2-ASN.mmdb')
-lc_reader = Reader('./ISP_Database/GeoLite2-City.mmdb')
 def get_isp(ip):
+    """
+    Fetch ISP, country, and city information for a given IP address using MaxMind databases.
+
+    :param ip: IP address to lookup
+    :return: Dictionary containing ISP, country, and city details
+    """
     try:
         isp_resp = isp_reader.asn(ip)
         lc_resp = lc_reader.city(ip)
@@ -107,7 +112,14 @@ def get_isp(ip):
 
 
 # Function to replace empty lists and dictionaries with 'null'
+
 def replace_empty(val):
+    """
+    Replace empty lists, dictionaries, or strings with 'null'.
+
+    :param val: Value to check and possibly replace
+    :return: Original value or 'null' if empty
+    """
     if isinstance(val, list) and not val:  # Check if it's an empty list
         return "null"
     elif isinstance(val, dict) and not val:  # Check if it's an empty dict
@@ -119,7 +131,14 @@ def replace_empty(val):
 # ------------------------------------------------------------------ #
 
 # Get the input time and transfer to timestamp format
+
 def get_timestamp_from_input(date_string):
+    """
+    Convert a date string in 'YYYY-MM-DD_HH:MM:SS' format to a UTC timestamp in milliseconds.
+
+    :param date_string: Date string to convert
+    :return: Timestamp in milliseconds
+    """
     taiwan_timezone = timezone(timedelta(hours=8))
     return int(datetime.strptime(date_string, "%Y-%m-%d_%H:%M:%S").replace(tzinfo=taiwan_timezone).timestamp() * 1000)
 
@@ -127,11 +146,11 @@ def get_timestamp_from_input(date_string):
 
 def save_to_csv(file_path, data, write_header):
     """
-    Write data into csv.
+    Write data into a CSV file.
 
-    :param file_path: CSV file path
-    :param data: data to write in (List of dictionary)
-    :param write_header: decide if the header should be written into csv
+    :param file_path: Path to the CSV file
+    :param data: List of dictionaries to write as rows
+    :param write_header: Boolean indicating if the header row should be written
     """
     df = pd.json_normalize(data)
     df.drop("cipher_suite", axis=1, inplace=True)
@@ -149,13 +168,17 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
     Fetch data from OpenSearch and write it to a CSV file in batches.
 
     :param client: OpenSearch client
-    :param index_pattern: Index pattern
-    :param query: Query conditions
-    :param formatted_cs: Formatted cipher suite data
-    :param csv_file: Output CSV file path
+    :param index_pattern: Index pattern to match
+    :param query: Query conditions to apply
+    :param formatted_cs: Dictionary of formatted cipher suite data
+    :param csv_file: Path to the output CSV file
+    :return: Tuple containing the number of batches processed and the total number of rows written
     """
-
-    # Know how many indices that match the pattern
+    if not all([isp_reader, lc_reader]):
+        raise ValueError(
+            "Missing required environment variables. Please check your .env file."
+        )
+    
     count_query = {
         "query": query["query"]
     }
@@ -241,12 +264,6 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
 
 # main function
 def main():
-    idx_pattern = os.getenv("IDX_PTN")
-    cipher_file = os.getenv("CS_FILE")
-
-    start_time = os.getenv("START_TIME")
-    end_time = os.getenv("END_TIME")
-
     # Check required environment variables
     if not all([host, port, auth, idx_pattern, cipher_file]):
         raise ValueError(
