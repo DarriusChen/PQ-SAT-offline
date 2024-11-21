@@ -74,6 +74,12 @@ client = OpenSearch(
 
 
 def load_ciphersuite_data(ciphersuite_file):
+    """
+    Load cipher suite data from a JSON file.
+
+    :param ciphersuite_file: Path to the JSON file containing cipher suite data
+    :return: Dictionary mapping cipher names to their details
+    """
     with open(ciphersuite_file, "r") as file:
         ciphersuite_data = json.load(file)
     return {cipher["name"]: cipher for cipher in ciphersuite_data}
@@ -242,7 +248,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
             unique_data = []  # Clear space
             batch_count += 1
             ps_logger.info(f"No.{batch_count} batch has been processed")
-            
+
         except Exception as e:
             ps_logger.error(e)
 
