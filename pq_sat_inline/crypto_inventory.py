@@ -314,7 +314,7 @@ def main():
     dt1 = datetime.now().replace(tzinfo=timezone.utc)
     dt2 = dt1.astimezone(timezone(timedelta(hours=8)))  # transfer timezone to +8
     now = dt2.strftime("%Y_%m_%d_%H_%M_%S")
-    output_file = "./crypto_inventory_report/inventory_report_" + now + ".xlsx"
+    output_file = "./crypto_inventory_report/inventory_report_" + now + ".csv"
 
     batch_count, all_data_count = fetch_unique_data(client, idx_pattern, query, formatted_cs, output_file)
 
