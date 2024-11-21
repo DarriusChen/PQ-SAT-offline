@@ -2,3 +2,4 @@
 docker-compose.yml
 *.sh
 cron_test.log
+crypto_inventory_report/
