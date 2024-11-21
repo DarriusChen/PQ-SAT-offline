@@ -7,3 +7,6 @@ pcap_files_1/
 
 # log file (for testing)
 execution.log
+
+# output reports
+crypto_inventory_report/
