@@ -125,19 +125,35 @@ def get_timestamp_from_input(date_string):
 
 # ------------------------------------------------------------------ #
 
-def save_to_excel(writer, data, start_row):
+def save_to_csv(file_path, data, write_header):
+    """
+    Write data into csv.
+
+    :param file_path: CSV file path
+    :param data: data to write in (List of dictionary)
+    :param write_header: decide if the header should be written into csv
+    """
     df = pd.json_normalize(data)
     df.drop("cipher_suite", axis=1, inplace=True)
     df.fillna(value="null", inplace=True)
     df = df.map(replace_empty)
     df.columns = [col.replace('.', '_') for col in df.columns]
     df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
-    df.to_excel(writer, sheet_name="Inventory Report", index=False, startrow=start_row, header=start_row == 0)
+    df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
 
 # ------------------------------------------------------------------ #
 
 # Cope with unique data from OpenSearch, then map with ciphersuite data
-def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
+def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
+    """
+    Fetch data from OpenSearch and write it to a CSV file in batches.
+
+    :param client: OpenSearch client
+    :param index_pattern: Index pattern
+    :param query: Query conditions
+    :param formatted_cs: Formatted cipher suite data
+    :param csv_file: Output CSV file path
+    """
 
     # Know how many indices that match the pattern
     count_query = {
@@ -146,7 +162,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
     total_count = client.count(index=index_pattern, body=count_query)['count']
     print(f"\nCollecting {total_count} indices from opensearch...")
     ps_logger.info(f"Collecting {total_count} indices from opensearch...")
-    ps_logger.info(f"\nThere will be {round(total_count/5000)+1} batches. Starting process...")
+    ps_logger.info(f"There will be at most {round(total_count/5000)+1} batches. Starting process...")
 
     # Initialize tqdm progress bar
     pbar = tqdm(file=sys.stdout, total=total_count, desc="Fetching unique data", unit="doc")
@@ -154,7 +170,8 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
     unique_data = []
     after_key = None
     batch_count = 0
-    current_row = 0 # to specify the start row in excel
+    data_count = 0
+    write_header = True  # Only write header while writing in the first batch
 
     while True:
 
@@ -196,8 +213,9 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
             pbar.update(len(buckets))
 
 
-            save_to_excel(writer, unique_data, current_row)
-            current_row += len(unique_data) # Update start row
+            save_to_csv(csv_file, unique_data, write_header)
+            write_header = False  # No writing header from second row
+            data_count += len(unique_data) # Update start row
             unique_data = []  # Clear space
             batch_count += 1
             ps_logger.info(f"No.{batch_count} batch has been processed")
@@ -215,9 +233,9 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, writer):
     if unique_data:
         batch_count += 1
         ps_logger.info(f"No.{batch_count} batch has been processed")
-        save_to_excel(writer, unique_data, current_row)
-        
-    return batch_count, current_row
+        save_to_csv(csv_file, unique_data, write_header)
+    
+    return batch_count, data_count
 
 # ------------------------------------------------------------------ #
 
@@ -252,6 +270,9 @@ def main():
             ]
             }
         },
+        "sort": [
+        {"ts": {"order": "asc"}}  # sort by timestamp
+        ],
         "aggs": {
             "unique_combinations": {
             "composite": {
@@ -278,10 +299,9 @@ def main():
     now = dt2.strftime("%Y_%m_%d_%H_%M_%S")
     output_file = "./crypto_inventory_report/inventory_report_" + now + ".xlsx"
 
-    with pd.ExcelWriter(output_file, engine="xlsxwriter") as writer:
-        batch_count, all_rows = fetch_unique_data(client, idx_pattern, query, formatted_cs, writer)
+    batch_count, all_data_count = fetch_unique_data(client, idx_pattern, query, formatted_cs, output_file)
 
-    ps_logger.info(f"Data successfully processed. Total rows written: {all_rows} in {batch_count} batches to {output_file}.")
+    ps_logger.info(f"Data successfully processed. Total rows written: {all_data_count} in {batch_count} batches to {output_file}.")
     print(f"Data successfully exported to {output_file}.")
 
 
