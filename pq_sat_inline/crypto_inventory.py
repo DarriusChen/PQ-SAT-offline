@@ -55,52 +55,6 @@ client = OpenSearch(
     retry_on_timeout=True  # Enable retry on timeout
 )
 
-
-def scroll_search(client, index_pattern, query, scroll_time="15m", batch_size=10000):
-    try:
-        # Know how many indices that match the pattern
-        response_count = client.count(index=index_pattern, body=query)['count']
-        print(f"\nCollecting {response_count} indices from opensearch...")
-        response = client.search(
-            index=index_pattern,
-            body=query,
-            scroll=scroll_time,
-            size=batch_size,
-            _source=[
-                "ts",
-                "id.orig_h",
-                "id.orig_p",
-                "id.resp_h",
-                "id.resp_p",
-                "version",
-                "cipher",
-            ],
-        )
-
-        # Collect results from the initial search
-        scroll_id = response["_scroll_id"]
-        hits = response["hits"]["hits"]
-
-        # Yield the first batch
-        yield hits
-
-        # Scroll through the data
-        while True:
-            response = client.scroll(scroll_id=scroll_id, scroll=scroll_time)
-            hits = response["hits"]["hits"]
-            if not hits:
-                break  # Stop if no more data is returned
-
-            yield hits  # Yield each batch as it's retrieved
-            scroll_id = response[
-                "_scroll_id"
-            ]  # Update scroll ID for the next scroll call
-        client.clear_scroll(scroll_id=scroll_id)  # Clear scroll context after processing
-    except Exception as e:
-        print(f"Error getting data from OpenSearch: {e}")
-        return None
-
-
 # ------------------------------------------------------------------ #
 
 # Load and format ciphersuite data once, outside the function
@@ -115,54 +69,6 @@ def load_ciphersuite_data(ciphersuite_file):
 formatted_cs = load_ciphersuite_data("cipher_suites.json")
 
 # ------------------------------------------------------------------ #
-
-# Map ciphersuites with ssl data
-
-
-def map_ciphersuite_generator(hits):
-
-    # Initialize an empty dictionary to store items
-    batch_data = []
-    # Initialize an empty dictionary to store isp info
-    isp_cache = {}
-
-    for hit in tqdm(hits,
-        file=sys.stdout,
-        desc="Adding ISP information & Mapping with ciphersuites data...",
-        dynamic_ncols=True
-        ):
-        ts_seconds = datetime.fromtimestamp(hit["_source"].get("ts") / 10000)
-        time_ = ts_seconds.strftime("%Y/%m/%d-%H:%M:%S")
-        origin_ip = hit["_source"].get("id.orig_h")
-        origin_port = hit["_source"].get("id.orig_p")
-        response_ip = hit["_source"].get("id.resp_h")
-        response_port = hit["_source"].get("id.resp_p")
-        tls_version = hit["_source"].get("version", "null")
-        cipher_suite = hit["_source"].get("cipher", "null")
-
-        if response_ip not in isp_cache:
-            isp_cache[response_ip] = add_isp_1(response_ip)
-        isp_info = isp_cache[response_ip]
-
-        data_item = {
-            "time": time_,
-            "origin_ip": origin_ip,
-            "origin_port": origin_port,
-            "response_ip": response_ip,
-            "response_port": response_port,
-            "tls_version": tls_version,
-            "isp": isp_info.get("isp"),
-            "country": isp_info.get("country"),
-            "ciphersuite": formatted_cs.get(cipher_suite, "null"),
-        }
-
-        batch_data.append(data_item)
-
-    yield batch_data
-
-
-# ------------------------------------------------------------------ #
-
 
 # Add each ISP info
 @lru_cache(maxsize=1000)  # Quickly go through the info of searched IP
