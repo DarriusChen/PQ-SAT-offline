@@ -291,7 +291,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
     pbar = tqdm(file=sys.stdout, total=total_count, desc="Fetching unique data", unit="doc")
 
     after_key = None
-    batch_count = 1
+    batch_count = 0
     data_count = 0
     write_header = True  # Only write header while writing in the first batch
 
@@ -305,9 +305,9 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
             save_to_csv(csv_file, batch_data, write_header)
             write_header = False
             data_count += len(batch_data)
-            ps_logger.info(f"No.{batch_count} batch has been processed")
             pbar.update(len(buckets))
             batch_count += 1
+            ps_logger.info(f"No.{batch_count} batch has been processed")
 
             after_key = response["aggregations"]["unique_combinations"].get("after_key")
             if not after_key:
