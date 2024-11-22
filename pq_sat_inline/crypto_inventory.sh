@@ -48,7 +48,7 @@ fi
 echo "Running Docker container with OPS_HOST=$HOST...."
 docker run -it --rm --name pq-sat\
   -v "$(pwd)/crypto_inventory_report:/app/crypto_inventory_report" \
-  -v "$(pwd)/logs/:/app/logs \
+  -v "$(pwd)/logs/:/app/logs" \
   -e OPS_HOST="$HOST" \
   -e START_TIME="$start_time" \
   -e END_TIME="$end_time" \
