@@ -168,7 +168,7 @@ def save_to_csv(file_path, data, write_header):
             df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
         df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
     except Exception as e:
-        ps_logger.error("Error saving to csv")
+        ps_logger.error(f"Error saving to csv: {e}")
 
 # ------------------------------------------------------------------ #
 
@@ -287,7 +287,6 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
     # Initialize tqdm progress bar
     pbar = tqdm(file=sys.stdout, total=total_count, desc="Fetching unique data", unit="doc")
 
-    unique_data = []
     after_key = None
     batch_count = 1
     data_count = 0
@@ -314,15 +313,6 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
         except Exception as e:
             ps_logger.error(f"Unexpected error in main loop: {e}")
             break
-
-    # Write in the remmain data
-    if unique_data:
-        batch_count += 1
-        try:
-            save_to_csv(csv_file, unique_data, write_header)
-            ps_logger.info(f"No.{batch_count} batch has been processed")
-        except Exception as e:
-            ps_logger.critical(f"Failed to save remaining data. Error: {e}")
 
     pbar.close()
     ps_logger.info(f"Total batches: {batch_count}, Total rows: {data_count}")
