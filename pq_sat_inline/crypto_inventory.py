@@ -168,7 +168,10 @@ def save_to_csv(file_path, data, write_header):
             df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
         df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
     except Exception as e:
-        ps_logger.error(f"Error saving to csv: {e}")
+        error_file = f"./error_{int(time.time())}.json"
+        with open(error_file, 'w') as f:
+            json.dump(data, f)
+        ps_logger.error(f"Error saving to CSV. Data saved to {error_file}: {e}")
 
 # ------------------------------------------------------------------ #
 
@@ -254,7 +257,7 @@ def process_buckets(buckets, formatted_cs):
             ps_logger.error(f"KeyError processing bucket: {bucket}, error: {e}")
         except Exception as e:
             ps_logger.error(f"Unexpected error processing bucket: {bucket}, error: {e}")
-            continue
+
     return processed_data
 
 # ------------------------------------------------------------------ #
