@@ -21,7 +21,7 @@ ps_logger = logging.getLogger('pqsat-execution')
 ps_logger.setLevel(logging.DEBUG)  # 設定 Logger 等級
 
 # FileHandler
-file_handler = logging.FileHandler('./execution.log')
+file_handler = logging.FileHandler('./logs/execution.log')
 file_handler.setLevel(logging.DEBUG)
 
 # Formatter
@@ -168,7 +168,7 @@ def save_to_csv(file_path, data, write_header):
             df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
         df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
     except Exception as e:
-        error_file = f"./error_{int(time.time())}.json"
+        error_file = f"./logs/error_{int(time.time())}.json"
         with open(error_file, 'w') as f:
             json.dump(data, f)
         ps_logger.error(f"Error saving to CSV. Data saved to {error_file}: {e}")
