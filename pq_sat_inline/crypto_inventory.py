@@ -308,10 +308,11 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
 
             save_to_csv(csv_file, batch_data, write_header)
             write_header = False
-            data_count += len(batch_data)
+            batch_len = len(batch_data)
+            data_count += batch_len
             pbar.update(len(buckets))
             batch_count += 1
-            ps_logger.info(f"No.{batch_count} batch, #{data_count} data has been processed.")
+            ps_logger.info(f"No.{batch_count} batch, #{batch_len} data has been processed.")
 
             after_key = response["aggregations"]["unique_combinations"].get("after_key")
             if not after_key:
