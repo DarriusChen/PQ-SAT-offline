@@ -160,12 +160,13 @@ def save_to_csv(file_path, data, write_header):
     """
     try:
         df = pd.json_normalize(data)
-        df.drop("cipher_suite", axis=1, inplace=True)
+        if 'cipher_suite' in df.columns:
+            df.drop("cipher_suite", axis=1, inplace=True)
+        if 'cipher_suite_reference_url' in df.columns:  # ensure field exists
+            df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
         df.fillna(value="null", inplace=True)
         df = df.map(replace_empty)
         df.columns = [col.replace('.', '_') for col in df.columns]
-        if 'cipher_suite_reference_url' in df.columns:  # ensure field exists
-            df['cipher_suite_reference_url'] = df['cipher_suite_reference_url'].astype(str)
         df.to_csv(file_path, mode="a", header=write_header, index=False, encoding='utf-8')
     except Exception as e:
         error_file = f"./logs/error_{int(time.time())}.json"
@@ -307,7 +308,7 @@ def fetch_unique_data(client, index_pattern, query, formatted_cs, csv_file):
             data_count += len(batch_data)
             pbar.update(len(buckets))
             batch_count += 1
-            ps_logger.info(f"No.{batch_count} batch has been processed")
+            ps_logger.info(f"No.{batch_count} batch, #{data_count} data has been processed.")
 
             after_key = response["aggregations"]["unique_combinations"].get("after_key")
             if not after_key:
