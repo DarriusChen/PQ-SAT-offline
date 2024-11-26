@@ -213,6 +213,8 @@ def fetch_data_from_opensearch(client, index_pattern, query, after_key):
             time.sleep(5)  # avoid instantaneous retry
 # ------------------------------------------------------------------ #
 
+taiwan_timezone = timezone(timedelta(hours=8))
+
 def process_buckets(buckets, formatted_cs):
     """
     Process buckets from OpenSearch response and map cipher suite data.
@@ -225,7 +227,8 @@ def process_buckets(buckets, formatted_cs):
     processed_data = []
     for bucket in buckets:
         try:
-            time_ = datetime.fromtimestamp(bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000).strftime("%Y/%m/%d-%H:%M:%S")
+            ts = bucket["time"]["hits"]["hits"][0]["_source"].get("ts", "null") / 1000
+            time_ = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(taiwan_timezone).strftime("%Y/%m/%d-%H:%M:%S")
             origin_ip = bucket["key"]["origin_ip"]
             origin_port = bucket["key"]["origin_port"]
             response_ip = bucket["key"]["response_ip"]
