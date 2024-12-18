@@ -108,7 +108,6 @@ def get_isp(ip):
             "city": lc_resp.city.name
         }
     except Exception as e:
-        # print(f"Error looking up IP {ip}: {e}")
         return {
             "isp": "null", 
             "country": "null",
@@ -229,7 +228,6 @@ def process_ssl_log_mapping(log_file):
         df.fillna(value="null", inplace=True)
         df = df.map(replace_empty)
         df.columns = [col.replace('.', '_') for col in df.columns]
-        df.to_csv(f'.crypto_inventory_report/{log_file}.csv')
     except Exception as e:
         error_file = f"./logs/error_{int(time.time())}.json"
         with open(error_file, 'w') as f:
