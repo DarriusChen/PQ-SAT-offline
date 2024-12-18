@@ -8,6 +8,20 @@ if [ ! -f docker-compose.yaml ]; then
   exit 1
 fi
 
+# 檢查 logs 及 report 資料夾是否存在
+LOG_DIR="$(pwd)/logs"
+REPORT_DIR="$(pwd)/crypto_inventory_report"
+
+if [ ! -d "$LOG_DIR" ]; then
+    mkdir -p "$LOG_DIR"
+    echo "Created logs directory: $LOG_DIR"
+fi
+
+if [ ! -d "$REPORT_DIR" ]; then
+    mkdir -p "$REPORT_DIR"
+    echo "Created report directory: $REPORT_DIR"
+fi
+
 # 進度條函數，動態根據實際時間顯示
 progress_bar_dynamic() {
     local start_time=$1
