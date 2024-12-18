@@ -1,0 +1,27 @@
+services:
+  zeek-analysis:
+    image: zeek/zeek  # pull zeek official image
+    container_name: zeek-logs-generator
+    volumes:
+      - ./pcap_files:/app/pcap_files
+      - ./zeek_analysis.sh:/app/zeek_analysis.sh
+      - ./log_output:/app/log_output
+      - ./.env:/app/.env
+      - ./shared:/app/shared # 掛載共享目錄
+    working_dir: /app
+    command: ["bash", "./zeek_analysis.sh"]
+
+  cipher-mapping:
+    build:
+      context: .  # 指定 Dockerfile 的目錄
+      dockerfile: Dockerfile  # 指定 Python 的 Dockerfile
+    container_name: cipher-mapper
+    volumes:
+      - ./log_output:/app/log_output
+      - ./crypto_inventory_report:/app/crypto_inventory_report # 輸出結果的資料夾
+      - ./.env:/app/.env 
+      - ./shared:/app/shared 
+    # depends_on:
+    #   - zeek  # 保證 Python 容器在 Zeek 解析完 pcap 文件後再運行
+    tty: true  # 確保虛擬終端
+    command: ["bash", "-c", "while [ ! -f ./shared/flag_file.txt ]; do sleep 1; done; python /app/crypto_inventory.py"]
