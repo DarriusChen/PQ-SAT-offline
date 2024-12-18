@@ -165,8 +165,7 @@ def map_ciphersuite(ssl_data, formatted_cs):
     processed_data = []
     for data in ssl_data:
         try:
-            ts = data.get("ts", "null") / 1000
-            time_ = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(taiwan_timezone).strftime("%Y/%m/%d-%H:%M:%S")
+            time_ = datetime.fromtimestamp(data.get("ts", "null"), tz=timezone.utc).astimezone(taiwan_timezone).strftime("%Y/%m/%d-%H:%M:%S")
             origin_ip = data.get('id.orig_h')
             origin_port = data.get('id.orig_p')
             response_ip = data.get('id.resp_h')
