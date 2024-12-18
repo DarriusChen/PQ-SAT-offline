@@ -1,5 +1,4 @@
 pandas==2.2.3
-ipwhois==1.2.0
 tqdm==4.66.5
-xlsxwriter
+geoip2
 python-dotenv
