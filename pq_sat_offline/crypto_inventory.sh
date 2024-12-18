@@ -12,13 +12,16 @@ fi
 LOG_DIR="$(pwd)/logs"
 REPORT_DIR="$(pwd)/crypto_inventory_report"
 
+
 if [ ! -d "$LOG_DIR" ]; then
     mkdir -p "$LOG_DIR"
+    chmod -R 777 $LOG_DIR
     echo "Created logs directory: $LOG_DIR"
 fi
 
 if [ ! -d "$REPORT_DIR" ]; then
     mkdir -p "$REPORT_DIR"
+    chmod -R 777 $REPORT_DIR
     echo "Created report directory: $REPORT_DIR"
 fi
 
