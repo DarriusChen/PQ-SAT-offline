@@ -2,6 +2,10 @@
 .DS_Store
 
 # pcap files
-pq_sat_local/pcap_files/
+pcap_files/
 
+# zeek output
+log_output/
+
+# logs
 logs/
