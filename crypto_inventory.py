@@ -19,12 +19,19 @@ ps_logger = logging.getLogger('pqsat-execution')
 ps_logger.setLevel(logging.DEBUG)
 
 # FileHandler
-file_handler = logging.FileHandler('./logs/execution.log')
+file_handler = logging.FileHandler('./output/logs/execution.log')
 file_handler.setLevel(logging.DEBUG)
 
 # Formatter
-logging.Formatter.converter = time.localtime
-formatter = logging.Formatter('%(asctime)s - %(module)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
+class TaiwanFormatter(logging.Formatter):
+    def formatTime(self, record, datefmt=None):
+        utc_dt = datetime.fromtimestamp(record.created)
+        taiwan_dt = utc_dt + timedelta(hours=8)  # UTC+8 
+        if datefmt:
+            return taiwan_dt.strftime(datefmt)
+        return taiwan_dt.isoformat()
+    
+formatter = TaiwanFormatter('%(asctime)s - %(module)s: %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 file_handler.setFormatter(formatter)
 
 # Add Handler to Logger
@@ -83,9 +90,6 @@ def load_ciphersuite_data(ciphersuite_file):
     with open(ciphersuite_file, "r") as file:
         ciphersuite_data = json.load(file)
     return {cipher["name"]: cipher for cipher in ciphersuite_data}
-
-
-formatted_cs = load_ciphersuite_data("cipher_suites.json")
 
 # ------------------------------------------------------------------ #
 
@@ -209,6 +213,8 @@ def map_ciphersuite(ssl_data, formatted_cs):
 # 處理單個 ssl.log 文件
 def process_ssl_log_mapping(log_file):
 
+    formatted_cs = load_ciphersuite_data(cipher_file)
+
     # 讀取 ssl.log 文件
     ssl_data = get_data_from_ssl_log(log_file)
     if not ssl_data:
@@ -281,7 +287,7 @@ def main():
     dt1 = datetime.now().replace(tzinfo=timezone.utc)
     dt2 = dt1.astimezone(timezone(timedelta(hours=8)))  # transfer timezone to +8
     now = dt2.strftime("%Y_%m_%d_%H_%M_%S")
-    output_file = "./crypto_inventory_report/inventory_report_" + now + ".csv"
+    output_file = "./output/crypto_inventory_report/inventory_report_" + now + ".csv"
 
     combined_df.to_csv(output_file, mode="w", index=False, encoding='utf-8')
 
