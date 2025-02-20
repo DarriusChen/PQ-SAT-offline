@@ -1,4 +1,6 @@
 #!/bin/bash
+NC='\033[0m'
+SKYBLUE='\033[0;36m'
 
 set -e  # 遇到錯誤時立即退出
 
@@ -61,3 +63,4 @@ else
 fi
 
 echo "All done! Congratulations!"
+echo -e "${SKYBLUE} ======        Finished        ===== ${NC}"
