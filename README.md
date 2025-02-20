@@ -1,4 +1,4 @@
-# PQ-SAT: Inline version
+# PQ-SAT: Offline version
 
 **PQ-SAT** (Post-Quantum Security Assessment Tool ) is an automated solution for extracting, analyzing, and reporting on SSL logs, enriched with cryptographic data to provide actionable insights.
 
@@ -41,12 +41,13 @@ Before deploying or running the application, ensure the following requirements a
     #### ***`.env` File Configuration***
     
 
-   | **Variable** | **Description**                                              | **Default**                       | **Required** |           |
-   |--------------|--------------------------------------------------------------|-----------------------------------|--------------|----------------------|
-   | `LOG_PATH`   | Output path of logs extracted by zeek                      | `./log_output`      | Yes❗          |                  |
-   | `CS_FILE`   | File path of ciphersuite data                                    | `./data/cipher_suites.json`                            | Yes❗           | 
-   | `ISP_ASN`   | File path of ISP database (ASN)  | `./data/ISP_Database/GeoLite2-ASN.mmdb`                  | Yes❗          |
-   | `ISP_CITY`    | File path of ISP database (city nad country)                              | `./data/ISP_Database/GeoLite2-City.mmdb`                   | Yes❗           |
+   | **Variable** | **Description**                             | **Default**                                 | **Required** |
+   |--------------|---------------------------------------------|---------------------------------------------|--------------|
+   | `LOG_PATH`   | Output path of logs extracted by zeek       | `./log_output`                              | Yes❗         |
+   | `CS_FILE`    | File path of ciphersuite data                | `./data/cipher_suites.json`                 | Yes❗         |
+   | `ISP_ASN`    | File path of ISP database (ASN)              | `./data/ISP_Database/GeoLite2-ASN.mmdb`       | Yes❗         |
+   | `ISP_CITY`   | File path of ISP database (city and country) | `./data/ISP_Database/GeoLite2-City.mmdb`      | Yes❗         |
+
 
 3. **Deployment and Execution**
     - ####  Prerequisites:
