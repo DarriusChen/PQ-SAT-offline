@@ -66,7 +66,7 @@ def get_data_from_ssl_log(log_file):
     with open(log_file, 'r') as f:
         data = [json.loads(line) for line in f]  # 每一行是一個 JSON 物件
         fields_to_extract = [
-            'ts', 'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p',
+            'ts', 'id.orig_h', 'id.resp_h', 'id.resp_p',
             'version', 'cipher', 'ssl_history'
         ]
         filtered_data = [{
@@ -170,7 +170,6 @@ def map_ciphersuite(ssl_data, formatted_cs):
         try:
             time_ = datetime.fromtimestamp(data.get("ts", "null"), tz=timezone.utc).astimezone(taiwan_timezone).strftime("%Y/%m/%d-%H:%M:%S")
             origin_ip = data.get('id.orig_h')
-            origin_port = data.get('id.orig_p')
             response_ip = data.get('id.resp_h')
             response_port = data.get('id.resp_p')
             tls_version = data.get('version', "null")
@@ -188,7 +187,6 @@ def map_ciphersuite(ssl_data, formatted_cs):
                 data_item = {
                     "time": time_,
                     "origin_ip": origin_ip,
-                    "origin_port": origin_port,
                     "response_ip": response_ip,
                     "response_port": response_port,
                     "isp": isp_info.get('isp'),
@@ -238,6 +236,8 @@ def process_ssl_log_mapping(log_file):
         df.fillna(value="null", inplace=True)
         df = df.map(replace_empty)
         df.columns = [col.replace('.', '_') for col in df.columns]
+        # Drop all duplicate pairs in DataFrame
+        df.drop_duplicates(subset = ["origin_ip", "response_ip", "response_port"], inplace=True)
     except Exception as e:
         error_file = f"./logs/error_{int(time.time())}.json"
         with open(error_file, 'w') as f:
