@@ -60,7 +60,7 @@ def get_data_from_ssl_log(log_file):
         data = [json.loads(line) for line in f]  # 每一行是一個 JSON 物件
         fields_to_extract = [
             'ts', 'id.orig_h', 'id.orig_p', 'id.resp_h', 'id.resp_p',
-            'version', 'cipher'
+            'version', 'cipher', 'ssl_history'
         ]
         filtered_data = [{
             field: item.get(field, "null")
@@ -173,26 +173,30 @@ def map_ciphersuite(ssl_data, formatted_cs):
             cipher_suite = data.get('cipher', "null")
             mapped_cipher_suite = formatted_cs.get(cipher_suite, "null")
             isp_info = get_isp(response_ip)
+            ssl_history = data.get('ssl_history', 'null')
 
             # ISP temp storage
             if response_ip not in isp_cache:
                 isp_cache[response_ip] = get_isp(response_ip)
             isp_info = isp_cache[response_ip]
 
+            if 's' in ssl_history or 'j' in ssl_history:
+                data_item = {
+                    "time": time_,
+                    "origin_ip": origin_ip,
+                    "origin_port": origin_port,
+                    "response_ip": response_ip,
+                    "response_port": response_port,
+                    "isp": isp_info.get('isp'),
+                    "country": isp_info.get('country'),
+                    "city": isp_info.get('city'),
+                    "tls_version": tls_version,
+                    "cipher_suite": mapped_cipher_suite
+                }
+                processed_data.append(data_item)
+            else:
+                continue
 
-            data_item = {
-                "time": time_,
-                "origin_ip": origin_ip,
-                "origin_port": origin_port,
-                "response_ip": response_ip,
-                "response_port": response_port,
-                "isp": isp_info.get('isp'),
-                "country": isp_info.get('country'),
-                "city": isp_info.get('city'),
-                "tls_version": tls_version,
-                "cipher_suite": mapped_cipher_suite
-            }
-            processed_data.append(data_item)
         except KeyError as e:
             ps_logger.error(f"KeyError processing bucket: {data}, error: {e}")
         except Exception as e:
