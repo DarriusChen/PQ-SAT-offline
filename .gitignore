@@ -7,5 +7,5 @@ pcap_files/
 # zeek output
 log_output/
 
-# logs
-logs/
+# logs and reports output
+output/

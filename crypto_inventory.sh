@@ -11,8 +11,8 @@ if [ ! -f docker-compose.yaml ]; then
 fi
 
 # 檢查 logs 及 report 資料夾是否存在
-LOG_DIR="$(pwd)/logs"
-REPORT_DIR="$(pwd)/crypto_inventory_report"
+LOG_DIR="$(pwd)/output/logs"
+REPORT_DIR="$(pwd)/output/crypto_inventory_report"
 
 
 if [ ! -d "$LOG_DIR" ]; then
