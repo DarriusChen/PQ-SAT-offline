@@ -17,34 +17,31 @@ REPORT_DIR="$(pwd)/output/crypto_inventory_report"
 
 if [ ! -d "$LOG_DIR" ]; then
     mkdir -p "$LOG_DIR"
-    chmod -R 777 $LOG_DIR
+    chmod -R 777 "$LOG_DIR"
     echo "Created logs directory: $LOG_DIR"
 fi
 
 if [ ! -d "$REPORT_DIR" ]; then
     mkdir -p "$REPORT_DIR"
-    chmod -R 777 $REPORT_DIR
+    chmod -R 777 "$REPORT_DIR"
     echo "Created report directory: $REPORT_DIR"
 fi
 
-# 進度條函數，動態根據實際時間顯示
-progress_bar_dynamic() {
-    local start_time=$1
-    local elapsed=0
-    local total_time=$2
+# Load .env document
+ENV_FILE="$(pwd)/.env"
+if [ -f "$ENV_FILE" ]; then
+    source "$ENV_FILE"
+else
+    echo ".env file not found! Ensure the file exists and contains valid variables."
+    exit 1
+fi
 
-    while [ $elapsed -lt $total_time ]; do
-        bar_length=$((elapsed * 20 / total_time))  # 假設進度條有20格
-        remaining_length=$((20 - bar_length))
-        bar=$(printf "%${bar_length}s" | tr " " "█")
-        empty=$(printf "%${remaining_length}s")
-        percentage=$((elapsed * 100 / total_time))
-        printf "\rProgress: [%s%s] %d%%" "$bar" "$empty" "$percentage"
-        sleep 1
-        elapsed=$(( $(date +%s) - $start_time ))
-    done
-    printf "\rProgress: [████████████████████] 100%%\n"  # 結束後顯示完整進度條
-}
+if [ -d "$LOG_PATH" ]; then # 檢查資料夾內是否有舊資料
+    echo "$LOG_PATH"
+    rm -rf "$LOG_PATH"/*
+else
+    echo "haha"
+fi
 
 # 啟動 Docker 服務並等待其結束 (--build 保證每次都重新構建映像； --dry-run可以看到更多build的步驟)
 echo "Starting Docker services..."
@@ -56,10 +53,10 @@ docker-compose down
 
 # 刪除 shared 目錄及其中的檔案
 if [ -d ./shared ]; then
-  echo "Deleting shared directory and its contents..."
-  rm -rf ./shared
+    echo "Deleting shared directory and its contents..."
+    rm -rf ./shared
 else
-  echo "Shared directory does not exist."
+    echo "Shared directory does not exist."
 fi
 
 echo "All done! Congratulations!"
