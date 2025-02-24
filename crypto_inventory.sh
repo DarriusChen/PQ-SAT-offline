@@ -69,7 +69,7 @@ run_service() {
 
 CERT_FILE="./cert/certificate.crt"
 
-if [ ! -d "$CERT_FILE" ]; then
+if [ ! -f "$CERT_FILE" ]; then
     echo -e "${RED}Error: Certificate not found! ${NC}"
     exit 1
 fi
