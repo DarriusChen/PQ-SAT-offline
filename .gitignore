@@ -9,3 +9,6 @@ log_output/
 
 # logs and reports output
 output/
+
+# certificate
+cert/
