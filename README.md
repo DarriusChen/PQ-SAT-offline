@@ -48,8 +48,13 @@ Before deploying or running the application, ensure the following requirements a
    | `ISP_ASN`    | File path of ISP database (ASN)              | `./data/ISP_Database/GeoLite2-ASN.mmdb`       | Yes❗         |
    | `ISP_CITY`   | File path of ISP database (city and country) | `./data/ISP_Database/GeoLite2-City.mmdb`      | Yes❗         |
 
+3. **Create `pcap_files` folder under the project's root directory** 
 
-3. **Deployment and Execution**
+   ```bash
+   sudo mkdir pcap_files
+   ```
+
+4. **Deployment and Execution**
     - ####  Prerequisites:
         - Ensure Docker is installed and running.
         - The user running the commands must have root or sudo privileges.
@@ -57,7 +62,7 @@ Before deploying or running the application, ensure the following requirements a
       ```bash
       sudo bash crypto_inventory.sh
       ```
-4. Once the execution is done, go into the `crypto_inventory_report/` folder under the `output` directory, then you can see your report.
+5. Once the execution is done, go into the `crypto_inventory_report/` folder under the `output` directory, then you can see your report.
 
 ## File Structure
 
