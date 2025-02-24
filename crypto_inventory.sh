@@ -1,6 +1,7 @@
 #!/bin/bash
 NC='\033[0m'
 SKYBLUE='\033[0;36m'
+RED='\033[1;31m'
 
 set -e  # 遇到錯誤時立即退出
 
@@ -11,7 +12,7 @@ REPORT_DIR="$(pwd)/output/crypto_inventory_report"
 check_files() {
   # 檢查 docker-compose.yml 是否存在
   if [ ! -f docker-compose.yaml ]; then
-    echo "Error: docker-compose.yml file not found!"
+    echo -e "${RED}Error: docker-compose.yml file not found! ${NC}"
     exit 1
   fi
 
@@ -32,7 +33,7 @@ check_files() {
   if [ -f "$ENV_FILE" ]; then
       source "$ENV_FILE"
   else
-      echo ".env file not found! Ensure the file exists and contains valid variables."
+      echo -e "${RED}Error: .env file not found! Ensure the file exists and contains valid variables. ${NC}"
       exit 1
   fi
 
@@ -58,7 +59,7 @@ run_service() {
       echo "Deleting shared directory and its contents..."
       rm -rf ./shared
   else
-      echo "Shared directory does not exist."
+      echo -e "${RED}Shared directory does not exist. ${NC}"
   fi
 
 }
@@ -67,6 +68,12 @@ run_service() {
 # Certificate validation
 
 CERT_FILE="./cert/certificate.crt"
+
+if [[ ! -d "$CERT_FILE" ]]; then
+    echo -e "${RED}Error: Certificate not found! ${NC}"
+    exit 1
+fi
+
 
 # 取得憑證過期日期（轉換為 Unix Timestamp）
 EXPIRY_DATE=$(openssl x509 -enddate -noout -in "$CERT_FILE" | cut -d= -f2)
@@ -87,7 +94,7 @@ fi
 
 # 驗證轉換結果
 if [[ $? -ne 0 ]]; then
-    echo "錯誤：無法轉換憑證日期"
+    echo -e "${RED}Error：無法轉換憑證日期 ${NC}"
     exit 1
 fi
 
@@ -96,10 +103,10 @@ CURRENT_TIMESTAMP=$(date +%s)
 
 # 如果憑證已過期，則禁止執行程式
 if [ "$CURRENT_TIMESTAMP" -ge "$EXPIRY_TIMESTAMP" ]; then
-    echo "Error: Certificate has expired. Execution denied!"
+    echo -e "${RED}Error: Certificate has expired. Execution denied! ${NC}"
     exit 1
 else
-    echo "Certificate is valid. Running the program..."
+    echo -e "${SKYBLUE}Certificate is valid. Running the program... ${NC}"
     check_files
     run_service
 fi
