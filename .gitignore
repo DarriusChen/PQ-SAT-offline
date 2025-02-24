@@ -11,4 +11,4 @@ log_output/
 output/
 
 # certificate
-cert/
+private.key
